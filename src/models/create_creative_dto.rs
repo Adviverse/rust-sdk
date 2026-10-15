@@ -43,6 +43,20 @@ pub struct CreateCreativeDto {
     pub weight: Option<f64>,
     #[serde(rename = "carouselItems", skip_serializing_if = "Option::is_none")]
     pub carousel_items: Option<Vec<models::CarouselItemDto>>,
+    #[serde(rename = "duration", skip_serializing_if = "Option::is_none")]
+    pub duration: Option<f64>,
+    /// >0 makes the linear ad skippable after N seconds (VAST skipoffset).
+    #[serde(rename = "skipOffsetSec", skip_serializing_if = "Option::is_none")]
+    pub skip_offset_sec: Option<f64>,
+    /// Interactive VPAID (application/javascript) creative file, https.
+    #[serde(rename = "vpaidUrl", skip_serializing_if = "Option::is_none")]
+    pub vpaid_url: Option<String>,
+    /// Companion banners (VAST CompanionAds), max 5.
+    #[serde(rename = "companions", skip_serializing_if = "Option::is_none")]
+    pub companions: Option<Vec<models::CompanionDto>>,
+    /// Third-party VAST tag (the advertiser's own ad server), https. Only valid for type video/audio. Makes assetUrl optional: with no assetUrl the engine serves a VAST <Wrapper> pointing at this tag; when both are set the inline asset wins.
+    #[serde(rename = "vastTagUrl", skip_serializing_if = "Option::is_none")]
+    pub vast_tag_url: Option<String>,
 }
 
 impl CreateCreativeDto {
@@ -63,6 +77,11 @@ impl CreateCreativeDto {
             height: None,
             weight: None,
             carousel_items: None,
+            duration: None,
+            skip_offset_sec: None,
+            vpaid_url: None,
+            companions: None,
+            vast_tag_url: None,
         }
     }
 }

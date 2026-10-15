@@ -59,6 +59,7 @@ src/models/claim_screen_dto.rs
 src/models/claim_surface_dto.rs
 src/models/client_ping_dto.rs
 src/models/combo_unit_dto.rs
+src/models/companion_dto.rs
 src/models/consent_config_dto.rs
 src/models/consent_dto.rs
 src/models/create_app_dto.rs
@@ -72,6 +73,7 @@ src/models/create_destination_dto.rs
 src/models/create_feed_dto.rs
 src/models/create_guide_dto.rs
 src/models/create_key_dto.rs
+src/models/create_onchain_pool_dto.rs
 src/models/create_placement_dto.rs
 src/models/create_portal_config_dto.rs
 src/models/create_post_dto.rs
