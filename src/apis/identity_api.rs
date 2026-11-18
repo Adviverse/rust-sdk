@@ -51,7 +51,8 @@ pub enum IdentityControllerStatsError {
 }
 
 
-pub async fn identity_controller_consent(configuration: &configuration::Configuration, consent_dto: models::ConsentDto) -> Result<(), Error<IdentityControllerConsentError>> {
+/// Sets `state` (`granted` or `denied`) on the identity `canonicalId`. `denied` blocks future cross-identity merges and signal moves involving it. Returns 404 if the identity does not exist or the caller does not own it (admins bypass).  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn identity_controller_consent(configuration: &configuration::Configuration, consent_dto: models::ConsentDto) -> Result<models::IdentityControllerConsent201Response, Error<IdentityControllerConsentError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -62,6 +63,17 @@ pub async fn identity_controller_consent(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&consent_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -71,7 +83,7 @@ pub async fn identity_controller_consent(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IdentityControllerConsentError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -79,7 +91,8 @@ pub async fn identity_controller_consent(configuration: &configuration::Configur
     }
 }
 
-pub async fn identity_controller_get(configuration: &configuration::Configuration, canonical_id: &str) -> Result<(), Error<IdentityControllerGetError>> {
+/// Returns the identity row, the signals on it that the caller supplied (oldest first; admins see all) and the raw cookie/device ids among them. Never returns signals supplied by other accounts. Returns 404 if `canonicalId` does not exist or the caller does not own it (owns none of its signals).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn identity_controller_get(configuration: &configuration::Configuration, canonical_id: &str) -> Result<models::IdentityControllerGet200Response, Error<IdentityControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -90,6 +103,17 @@ pub async fn identity_controller_get(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -98,7 +122,7 @@ pub async fn identity_controller_get(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IdentityControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -106,7 +130,8 @@ pub async fn identity_controller_get(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn identity_controller_link(configuration: &configuration::Configuration, link_identity_dto: models::LinkIdentityDto) -> Result<(), Error<IdentityControllerLinkError>> {
+/// Adds `signals` (each `{ type, value }`, type one of email/phone/cookie/device/ip_ua) to the identity `canonicalId` without merging identities. A signal owned by another identity is moved only if neither identity has denied consent; otherwise it is skipped. The caller becomes an owner of the linked signals. Returns 404 if the identity does not exist or the caller does not own it (has not resolved/linked any of its signals; admins bypass), and 400 for an empty list.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn identity_controller_link(configuration: &configuration::Configuration, link_identity_dto: models::LinkIdentityDto) -> Result<models::IdentityControllerLink201Response, Error<IdentityControllerLinkError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -117,6 +142,17 @@ pub async fn identity_controller_link(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&link_identity_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -126,7 +162,7 @@ pub async fn identity_controller_link(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IdentityControllerLinkError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -134,7 +170,8 @@ pub async fn identity_controller_link(configuration: &configuration::Configurati
     }
 }
 
-pub async fn identity_controller_resolve(configuration: &configuration::Configuration, resolve_identity_dto: models::ResolveIdentityDto) -> Result<(), Error<IdentityControllerResolveError>> {
+/// Resolves any of `email`, `phone`, `cookieId`, `deviceId` (at least one, else 400) to a canonical identity, creating one if none matches and linking all signals to it. If the signals already belong to different identities they are merged into the oldest one, unless any of them has consent `denied`, in which case no merge happens and their signals stay put. Email and phone are normalized and hashed; mappings are mirrored to Redis for the ad-engine. The graph is shared across accounts (the same person resolves to one `canonicalId`), but the caller is recorded as an owner of the signals it supplied and the response lists only those signals, never signals supplied by other accounts.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn identity_controller_resolve(configuration: &configuration::Configuration, resolve_identity_dto: models::ResolveIdentityDto) -> Result<models::IdentityControllerResolve201Response, Error<IdentityControllerResolveError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -145,6 +182,17 @@ pub async fn identity_controller_resolve(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&resolve_identity_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -154,7 +202,7 @@ pub async fn identity_controller_resolve(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IdentityControllerResolveError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -162,7 +210,8 @@ pub async fn identity_controller_resolve(configuration: &configuration::Configur
     }
 }
 
-pub async fn identity_controller_stats(configuration: &configuration::Configuration, ) -> Result<(), Error<IdentityControllerStatsError>> {
+/// Returns counts across the identity graph: identities, linked signals, distinct households and identities that belong to a household (merged). Scoped to the calling account: only identities it owns and signals it supplied (admins get graph-wide totals).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn identity_controller_stats(configuration: &configuration::Configuration, ) -> Result<models::IdentityControllerStats200Response, Error<IdentityControllerStatsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -173,6 +222,17 @@ pub async fn identity_controller_stats(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -181,7 +241,7 @@ pub async fn identity_controller_stats(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IdentityControllerStatsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

@@ -72,7 +72,8 @@ pub enum BillingControllerVoidError {
 }
 
 
-pub async fn billing_controller_generate(configuration: &configuration::Configuration, generate_invoice_dto: models::GenerateInvoiceDto) -> Result<(), Error<BillingControllerGenerateError>> {
+/// Creates a draft invoice for `accountId` over `periodStart`..`periodEnd` (YYYY-MM-DD, inclusive). The charge equals the account's ledger 'spend' for the period; ClickHouse impression/click counts only label zero-amount detail lines. Tax comes from tax_rates for the account's tax_country (0 if none). Numbered INV-YYYY-NNNNNN. 404 if the account does not exist.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn billing_controller_generate(configuration: &configuration::Configuration, generate_invoice_dto: models::GenerateInvoiceDto) -> Result<models::BillingControllerGenerate201Response, Error<BillingControllerGenerateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -83,6 +84,17 @@ pub async fn billing_controller_generate(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&generate_invoice_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -92,7 +104,7 @@ pub async fn billing_controller_generate(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerGenerateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -100,7 +112,8 @@ pub async fn billing_controller_generate(configuration: &configuration::Configur
     }
 }
 
-pub async fn billing_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<BillingControllerGetError>> {
+/// Returns one invoice by id with its lines. Advertisers may only read their own invoices (403 otherwise); 404 if not found.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn billing_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<models::BillingInvoiceWithLines, Error<BillingControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -111,6 +124,17 @@ pub async fn billing_controller_get(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -119,7 +143,7 @@ pub async fn billing_controller_get(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -127,7 +151,8 @@ pub async fn billing_controller_get(configuration: &configuration::Configuration
     }
 }
 
-pub async fn billing_controller_issue(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<BillingControllerIssueError>> {
+/// Moves a draft invoice to 'issued', setting issued_at to now and due_date from the account's payment_terms_days. 400 if the invoice is not a draft.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn billing_controller_issue(configuration: &configuration::Configuration, id: &str) -> Result<models::BillingInvoice, Error<BillingControllerIssueError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -138,6 +163,17 @@ pub async fn billing_controller_issue(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -146,7 +182,7 @@ pub async fn billing_controller_issue(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerIssueError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -154,7 +190,8 @@ pub async fn billing_controller_issue(configuration: &configuration::Configurati
     }
 }
 
-pub async fn billing_controller_list(configuration: &configuration::Configuration, account_id: &str) -> Result<(), Error<BillingControllerListError>> {
+/// Returns up to 500 invoices, newest first. Advertisers see only their own; admins see all and may filter with `?accountId=`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn billing_controller_list(configuration: &configuration::Configuration, account_id: &str) -> Result<Vec<models::BillingInvoice>, Error<BillingControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -166,6 +203,17 @@ pub async fn billing_controller_list(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -174,7 +222,7 @@ pub async fn billing_controller_list(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -182,7 +230,8 @@ pub async fn billing_controller_list(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn billing_controller_pay(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<BillingControllerPayError>> {
+/// Posts an 'invoice_payment' debit for the invoice total against the account's available balance (idempotent per invoice) and marks the invoice paid. Already-paid invoices are returned unchanged; other non-issued statuses return 400, and insufficient funds return 400. Advertisers may pay only their own invoices.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn billing_controller_pay(configuration: &configuration::Configuration, id: &str) -> Result<models::BillingInvoice, Error<BillingControllerPayError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -193,6 +242,17 @@ pub async fn billing_controller_pay(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -201,7 +261,7 @@ pub async fn billing_controller_pay(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerPayError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -209,7 +269,8 @@ pub async fn billing_controller_pay(configuration: &configuration::Configuration
     }
 }
 
-pub async fn billing_controller_render(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<BillingControllerRenderError>> {
+/// Returns a self-contained printable HTML document for the invoice (number, status, period, dates, line items and totals). Same access rules as fetching the invoice.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn billing_controller_render(configuration: &configuration::Configuration, id: &str) -> Result<String, Error<BillingControllerRenderError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -220,6 +281,17 @@ pub async fn billing_controller_render(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -228,7 +300,7 @@ pub async fn billing_controller_render(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerRenderError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -236,7 +308,8 @@ pub async fn billing_controller_render(configuration: &configuration::Configurat
     }
 }
 
-pub async fn billing_controller_statement(configuration: &configuration::Configuration, ) -> Result<(), Error<BillingControllerStatementError>> {
+/// Derives a statement over `from`..`to` (YYYY-MM-DD; defaults 2020-01-01 to today) from ledger entries that touched the available balance: opening balance, charges (debits), payments (credits), closing balance, and up to 1000 entries in the window. Admins may pass `?accountId=`; advertisers always get their own.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn billing_controller_statement(configuration: &configuration::Configuration, ) -> Result<models::BillingControllerStatement200Response, Error<BillingControllerStatementError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -247,6 +320,17 @@ pub async fn billing_controller_statement(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -255,7 +339,7 @@ pub async fn billing_controller_statement(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerStatementError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -263,7 +347,8 @@ pub async fn billing_controller_statement(configuration: &configuration::Configu
     }
 }
 
-pub async fn billing_controller_void(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<BillingControllerVoidError>> {
+/// Marks any unpaid invoice as 'void'. Paid invoices cannot be voided (400); an already-void invoice is returned unchanged.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn billing_controller_void(configuration: &configuration::Configuration, id: &str) -> Result<models::BillingInvoice, Error<BillingControllerVoidError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -274,6 +359,17 @@ pub async fn billing_controller_void(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -282,7 +378,7 @@ pub async fn billing_controller_void(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BillingControllerVoidError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

@@ -51,7 +51,8 @@ pub enum OnboardingControllerStatusError {
 }
 
 
-pub async fn account_controller_didit_webhook(configuration: &configuration::Configuration, x_signature_simple: &str, x_signature_v2: &str, x_signature: &str) -> Result<(), Error<AccountControllerDiditWebhookError>> {
+/// Public callback for Didit, authenticated by HMAC signature (`x-signature-simple`, `x-signature-v2` or `x-signature` over the raw body) plus a `created_at` within 5 minutes. Updates the KYC session and maps the decision onto the account's KYC status, never downgrading a verified account. Returns 401 on a bad or stale signature, otherwise 200 so Didit does not retry.  Auth: public, no credentials required.
+pub async fn account_controller_didit_webhook(configuration: &configuration::Configuration, x_signature_simple: &str, x_signature_v2: &str, x_signature: &str) -> Result<models::AccountControllerDiditWebhook201Response, Error<AccountControllerDiditWebhookError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -73,7 +74,7 @@ pub async fn account_controller_didit_webhook(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AccountControllerDiditWebhookError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -81,7 +82,8 @@ pub async fn account_controller_didit_webhook(configuration: &configuration::Con
     }
 }
 
-pub async fn account_controller_kyc_status(configuration: &configuration::Configuration, ) -> Result<(), Error<AccountControllerKycStatusError>> {
+/// Returns the account's identity verification status (`none`, `submitted`, `verified` or `rejected`) and `instantProvider`, which is `didit` when hosted verification is configured and null otherwise. There is no manual document upload path.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn account_controller_kyc_status(configuration: &configuration::Configuration, ) -> Result<models::AccountControllerKycStatus200Response, Error<AccountControllerKycStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -92,6 +94,17 @@ pub async fn account_controller_kyc_status(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -100,7 +113,7 @@ pub async fn account_controller_kyc_status(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AccountControllerKycStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -108,7 +121,8 @@ pub async fn account_controller_kyc_status(configuration: &configuration::Config
     }
 }
 
-pub async fn account_controller_start_didit(configuration: &configuration::Configuration, ) -> Result<(), Error<AccountControllerStartDiditError>> {
+/// Creates a Didit verification session and returns the URL to send the user to. Documents are captured and reviewed by Didit; Adviverse never receives them. Records the session and sets the account to `submitted` unless already verified. Returns 400 if the provider is not configured or the session could not be created.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
+pub async fn account_controller_start_didit(configuration: &configuration::Configuration, ) -> Result<models::AccountControllerStartDidit201Response, Error<AccountControllerStartDiditError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -119,6 +133,17 @@ pub async fn account_controller_start_didit(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -127,7 +152,7 @@ pub async fn account_controller_start_didit(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AccountControllerStartDiditError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -135,7 +160,8 @@ pub async fn account_controller_start_didit(configuration: &configuration::Confi
     }
 }
 
-pub async fn onboarding_controller_save_profile(configuration: &configuration::Configuration, profile_dto: models::ProfileDto) -> Result<(), Error<OnboardingControllerSaveProfileError>> {
+/// Stores the onboarding wizard answers. `company` and `country` (2 letters) update the account columns; `currency` updates the account currency when it is a 2-12 character code; `goal` (advertiser|publisher|both, default both) sets the default landing side. `name`, `timezone`, `marketingOptIn` and an onboarding-completed flag are merged into account metadata. Idempotent.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
+pub async fn onboarding_controller_save_profile(configuration: &configuration::Configuration, profile_dto: models::ProfileDto) -> Result<models::OnboardingControllerSaveProfile201Response, Error<OnboardingControllerSaveProfileError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -146,6 +172,17 @@ pub async fn onboarding_controller_save_profile(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&profile_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -155,7 +192,7 @@ pub async fn onboarding_controller_save_profile(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OnboardingControllerSaveProfileError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -163,7 +200,8 @@ pub async fn onboarding_controller_save_profile(configuration: &configuration::C
     }
 }
 
-pub async fn onboarding_controller_status(configuration: &configuration::Configuration, ) -> Result<(), Error<OnboardingControllerStatusError>> {
+/// Returns onboarding checklist booleans for both sides, derived from real account state in one query: properties, verified properties, placements and tax form for the publisher side; a completed deposit, campaigns, creatives and an active campaign for the advertiser side.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn onboarding_controller_status(configuration: &configuration::Configuration, ) -> Result<models::OnboardingControllerStatus200Response, Error<OnboardingControllerStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -174,6 +212,17 @@ pub async fn onboarding_controller_status(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -182,7 +231,7 @@ pub async fn onboarding_controller_status(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OnboardingControllerStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

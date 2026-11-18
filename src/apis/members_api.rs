@@ -65,7 +65,8 @@ pub enum MembersControllerUpdateError {
 }
 
 
-pub async fn members_controller_accept(configuration: &configuration::Configuration, ) -> Result<(), Error<MembersControllerAcceptError>> {
+/// Public endpoint. Sets the member's password (minimum 8 characters) and optional `name`, activates the seat, consumes the invite token, and returns a new session token so the dashboard can log in straight away. Responds 400 for a short password or an invalid or expired token.  Auth: public, no credentials required.
+pub async fn members_controller_accept(configuration: &configuration::Configuration, ) -> Result<models::MembersControllerAccept201Response, Error<MembersControllerAcceptError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -84,7 +85,7 @@ pub async fn members_controller_accept(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MembersControllerAcceptError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -92,7 +93,8 @@ pub async fn members_controller_accept(configuration: &configuration::Configurat
     }
 }
 
-pub async fn members_controller_invite(configuration: &configuration::Configuration, ) -> Result<(), Error<MembersControllerInviteError>> {
+/// Creates (or refreshes) an invited seat and emails a single-use accept link valid for 7 days. Body: `email`, `name`, `role` (admin, manager or analyst; anything else becomes analyst), `allPixels` and `pixelIds`. Admins always get all pixels. Responds 400 for an invalid email, an email that already has an Adviverse account or a seat on another account, or a pixel id the account does not own.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn members_controller_invite(configuration: &configuration::Configuration, ) -> Result<models::AdvTeamMember, Error<MembersControllerInviteError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -103,6 +105,17 @@ pub async fn members_controller_invite(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -111,7 +124,7 @@ pub async fn members_controller_invite(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MembersControllerInviteError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -119,7 +132,8 @@ pub async fn members_controller_invite(configuration: &configuration::Configurat
     }
 }
 
-pub async fn members_controller_invite_info(configuration: &configuration::Configuration, token: &str) -> Result<(), Error<MembersControllerInviteInfoError>> {
+/// Public endpoint for the accept-invite page. Returns the invited email, role and agency name for the `token` query parameter. Responds 404 when the token is invalid or expired.  Auth: public, no credentials required.
+pub async fn members_controller_invite_info(configuration: &configuration::Configuration, token: &str) -> Result<models::MembersControllerInviteInfo200Response, Error<MembersControllerInviteInfoError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -139,7 +153,7 @@ pub async fn members_controller_invite_info(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MembersControllerInviteInfoError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -147,7 +161,8 @@ pub async fn members_controller_invite_info(configuration: &configuration::Confi
     }
 }
 
-pub async fn members_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<MembersControllerListError>> {
+/// Returns every seat on the agency account with role, status and pixel grants. Team-management routes are for the account owner and admin seats only; manager and analyst seats cannot reach them.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn members_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvTeamMember>, Error<MembersControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -158,6 +173,17 @@ pub async fn members_controller_list(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -166,7 +192,7 @@ pub async fn members_controller_list(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MembersControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -174,7 +200,8 @@ pub async fn members_controller_list(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn members_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<MembersControllerRemoveError>> {
+/// Deletes the seat. Always returns `deleted: true`, even if no seat matched.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn members_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvDeleted, Error<MembersControllerRemoveError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -185,6 +212,17 @@ pub async fn members_controller_remove(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -193,7 +231,7 @@ pub async fn members_controller_remove(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MembersControllerRemoveError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -201,7 +239,8 @@ pub async fn members_controller_remove(configuration: &configuration::Configurat
     }
 }
 
-pub async fn members_controller_resend(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<MembersControllerResendError>> {
+/// Issues a new invite token (invalidating the previous link), resets the 7-day expiry and emails it again. Responds 404 for an unknown member and 400 when the member is already active.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn members_controller_resend(configuration: &configuration::Configuration, id: &str) -> Result<models::AuthControllerResendVerification201Response, Error<MembersControllerResendError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -212,6 +251,17 @@ pub async fn members_controller_resend(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -220,7 +270,7 @@ pub async fn members_controller_resend(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MembersControllerResendError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -228,7 +278,8 @@ pub async fn members_controller_resend(configuration: &configuration::Configurat
     }
 }
 
-pub async fn members_controller_update(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<MembersControllerUpdateError>> {
+/// Changes a seat's `role`, `allPixels`, `pixelIds` (replaces the grants), `status` (active, disabled or invited) and/or `name`. Disabling a member revokes their live sessions immediately. Responds 404 for an unknown member and 400 for a pixel the account does not own.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn members_controller_update(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvTeamMember, Error<MembersControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -239,6 +290,17 @@ pub async fn members_controller_update(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -247,7 +309,7 @@ pub async fn members_controller_update(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MembersControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

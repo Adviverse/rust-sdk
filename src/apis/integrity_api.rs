@@ -37,7 +37,8 @@ pub enum IntegrityControllerReportError {
 }
 
 
-pub async fn integrity_controller_liveness(configuration: &configuration::Configuration, client: &str, days: &str) -> Result<(), Error<IntegrityControllerLivenessError>> {
+/// Lists up to 500 installs that pinged any of your tags in the last `days` (default 7, max 30), with last-seen time, latest tag/uid, whether ads are enabled, and `alive` (pinged within ~95 minutes). Optional `?client=` scopes to one client id. The summary counts alive-and-enabled, alive-but-disabled, and stale installs.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn integrity_controller_liveness(configuration: &configuration::Configuration, client: &str, days: &str) -> Result<models::IntegrityControllerLiveness200Response, Error<IntegrityControllerLivenessError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -50,6 +51,17 @@ pub async fn integrity_controller_liveness(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -58,7 +70,7 @@ pub async fn integrity_controller_liveness(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IntegrityControllerLivenessError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -66,7 +78,8 @@ pub async fn integrity_controller_liveness(configuration: &configuration::Config
     }
 }
 
-pub async fn integrity_controller_ping(configuration: &configuration::Configuration, client_ping_dto: models::ClientPingDto) -> Result<(), Error<IntegrityControllerPingError>> {
+/// Public, rate-limited endpoint the terminal SDK calls about hourly per install with the `tag` it serves, its `client` id, `install_id`/`installId`, machine `uid` and `enabled` state. The ping is recorded against the tag's publisher for integrity and liveness reports. For placements with a signing secret, `ts` and `sig` (HMAC-SHA256 of `tag|uid|ts`, within 300s) are required or the ping is ignored. Always returns `{ ok: true }`, even for unknown tags or failures, so it never affects serving.  Auth: public, no credentials required.
+pub async fn integrity_controller_ping(configuration: &configuration::Configuration, client_ping_dto: models::ClientPingDto) -> Result<models::AuthControllerResendVerification201Response, Error<IntegrityControllerPingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -86,7 +99,7 @@ pub async fn integrity_controller_ping(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IntegrityControllerPingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -94,7 +107,8 @@ pub async fn integrity_controller_ping(configuration: &configuration::Configurat
     }
 }
 
-pub async fn integrity_controller_report(configuration: &configuration::Configuration, client: &str, days: &str) -> Result<(), Error<IntegrityControllerReportError>> {
+/// Over the last `days` (default 7, max 30) of client pings, lists machines running one of your tags that also run a foreign tag (`competing`), and, when `?client=` is given, installs reporting your client id while serving a tag you don't own (`swapped`). Also returns your tag keys and distinct install/machine counts. Empty result if you have no placements.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn integrity_controller_report(configuration: &configuration::Configuration, client: &str, days: &str) -> Result<models::IntegrityControllerReport200Response, Error<IntegrityControllerReportError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -107,6 +121,17 @@ pub async fn integrity_controller_report(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -115,7 +140,7 @@ pub async fn integrity_controller_report(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<IntegrityControllerReportError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

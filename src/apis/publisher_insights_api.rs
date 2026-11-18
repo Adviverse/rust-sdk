@@ -44,7 +44,8 @@ pub enum PublisherInsightsControllerNoFillError {
 }
 
 
-pub async fn publisher_insights_controller_clearing(configuration: &configuration::Configuration, placement_id: &str) -> Result<(), Error<PublisherInsightsControllerClearingError>> {
+/// For about 10 candidate floors across the placement's observed clearing range, returns `fillRate` (share of bids clearing at or above the floor) and `expectedRevenue` (floor x fillRate), plus clearing p50/p90 and sample size. Requires `?placementId=`; only your own revenue data is exposed. 404 if the placement is not yours.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_insights_controller_clearing(configuration: &configuration::Configuration, placement_id: &str) -> Result<models::PublisherInsightsControllerClearing200Response, Error<PublisherInsightsControllerClearingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -56,6 +57,17 @@ pub async fn publisher_insights_controller_clearing(configuration: &configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -64,7 +76,7 @@ pub async fn publisher_insights_controller_clearing(configuration: &configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherInsightsControllerClearingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -72,7 +84,8 @@ pub async fn publisher_insights_controller_clearing(configuration: &configuratio
     }
 }
 
-pub async fn publisher_insights_controller_deals(configuration: &configuration::Configuration, ) -> Result<(), Error<PublisherInsightsControllerDealsError>> {
+/// Returns every deal you own with attributed impressions, clicks, revenue and eCPM, sorted by revenue. Deals with no delivery show zeros; if analytics is unavailable metrics fall back to zero rather than failing.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_insights_controller_deals(configuration: &configuration::Configuration, ) -> Result<models::PublisherInsightsControllerDeals200Response, Error<PublisherInsightsControllerDealsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -83,6 +96,17 @@ pub async fn publisher_insights_controller_deals(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -91,7 +115,7 @@ pub async fn publisher_insights_controller_deals(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherInsightsControllerDealsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -99,7 +123,8 @@ pub async fn publisher_insights_controller_deals(configuration: &configuration::
     }
 }
 
-pub async fn publisher_insights_controller_floor_recommendation(configuration: &configuration::Configuration, placement_id: &str) -> Result<(), Error<PublisherInsightsControllerFloorRecommendationError>> {
+/// Picks the floor that maximizes expected revenue on the placement's empirical fill curve and a matching soft reserve, with the expected revenue lift versus the current floor. With fewer than 500 recent cleared impressions it keeps the current floor and explains why in `note`. Requires `?placementId=`; 404 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_insights_controller_floor_recommendation(configuration: &configuration::Configuration, placement_id: &str) -> Result<models::PublisherInsightsControllerFloorRecommendation200Response, Error<PublisherInsightsControllerFloorRecommendationError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -111,6 +136,17 @@ pub async fn publisher_insights_controller_floor_recommendation(configuration: &
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -119,7 +155,7 @@ pub async fn publisher_insights_controller_floor_recommendation(configuration: &
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherInsightsControllerFloorRecommendationError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -127,7 +163,8 @@ pub async fn publisher_insights_controller_floor_recommendation(configuration: &
     }
 }
 
-pub async fn publisher_insights_controller_no_fill(configuration: &configuration::Configuration, placement_id: &str) -> Result<(), Error<PublisherInsightsControllerNoFillError>> {
+/// Breaks down the placement's last 30 days of requests into filled vs. no-fill, with each no-fill reason's count and percentage share. `fillRate` and `pct` are percentages (0-100). Requires `?placementId=`; 404 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_insights_controller_no_fill(configuration: &configuration::Configuration, placement_id: &str) -> Result<models::PublisherInsightsControllerNoFill200Response, Error<PublisherInsightsControllerNoFillError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -139,6 +176,17 @@ pub async fn publisher_insights_controller_no_fill(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -147,7 +195,7 @@ pub async fn publisher_insights_controller_no_fill(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherInsightsControllerNoFillError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

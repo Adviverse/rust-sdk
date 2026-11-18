@@ -37,7 +37,8 @@ pub enum CapiControllerTokenError {
 }
 
 
-pub async fn capi_controller_events(configuration: &configuration::Configuration, capi_events_dto: models::CapiEventsDto) -> Result<(), Error<CapiControllerEventsError>> {
+/// Server-to-server batch ingest authenticated by the advertiser's CAPI token in the `X-CAPI-Token` header, not a session; a missing or invalid token returns 401. Each item in `events` needs `eventId` and `eventName`, plus optional `value`, `currency`, `clickId`, hashed `identifiers` (emailHash, phoneHash, externalId), `eventTime` and `customData`. Events are deduplicated per advertiser on `eventId` and attributed by click id first, then by the identity graph's most recent eligible click or impression. Results are per event and a failing event never fails the batch.  Auth: public, no credentials required.
+pub async fn capi_controller_events(configuration: &configuration::Configuration, capi_events_dto: models::CapiEventsDto) -> Result<models::CapiControllerEvents201Response, Error<CapiControllerEventsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -57,7 +58,7 @@ pub async fn capi_controller_events(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<CapiControllerEventsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -65,7 +66,8 @@ pub async fn capi_controller_events(configuration: &configuration::Configuration
     }
 }
 
-pub async fn capi_controller_recent(configuration: &configuration::Configuration, limit: &str) -> Result<(), Error<CapiControllerRecentError>> {
+/// Returns the advertiser's most recent CAPI-sourced postback log rows, newest first. `limit` defaults to 100 and is capped at 500. `attributed` shows whether the event was matched to a campaign.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn capi_controller_recent(configuration: &configuration::Configuration, limit: &str) -> Result<Vec<models::CapiControllerRecent200ResponseInner>, Error<CapiControllerRecentError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -77,6 +79,17 @@ pub async fn capi_controller_recent(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -85,7 +98,7 @@ pub async fn capi_controller_recent(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<CapiControllerRecentError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -93,7 +106,8 @@ pub async fn capi_controller_recent(configuration: &configuration::Configuration
     }
 }
 
-pub async fn capi_controller_token(configuration: &configuration::Configuration, ) -> Result<(), Error<CapiControllerTokenError>> {
+/// Revokes any active CAPI token for the advertiser and issues a new one. The full token (`<prefix>.<secret>`) is returned only in this response; the server stores only its hash. Use it as the `X-CAPI-Token` header on POST /v1/capi/events.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn capi_controller_token(configuration: &configuration::Configuration, ) -> Result<models::CapiControllerToken201Response, Error<CapiControllerTokenError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -104,6 +118,17 @@ pub async fn capi_controller_token(configuration: &configuration::Configuration,
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -112,7 +137,7 @@ pub async fn capi_controller_token(configuration: &configuration::Configuration,
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<CapiControllerTokenError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

@@ -79,7 +79,8 @@ pub enum WebhooksControllerUpdateError {
 }
 
 
-pub async fn webhooks_controller_deliveries(configuration: &configuration::Configuration, id: &str, limit: Option<f64>) -> Result<(), Error<WebhooksControllerDeliveriesError>> {
+/// Lists delivery attempts for one endpoint, newest first. `limit` defaults to 50 (max 200). Returns 400 if the endpoint is not found.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn webhooks_controller_deliveries(configuration: &configuration::Configuration, id: &str, limit: Option<f64>) -> Result<Vec<models::WebhookDelivery>, Error<WebhooksControllerDeliveriesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -93,6 +94,17 @@ pub async fn webhooks_controller_deliveries(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -101,7 +113,7 @@ pub async fn webhooks_controller_deliveries(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerDeliveriesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -109,7 +121,8 @@ pub async fn webhooks_controller_deliveries(configuration: &configuration::Confi
     }
 }
 
-pub async fn webhooks_controller_events(configuration: &configuration::Configuration, ) -> Result<(), Error<WebhooksControllerEventsError>> {
+/// Returns the event type names a webhook endpoint can subscribe to.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn webhooks_controller_events(configuration: &configuration::Configuration, ) -> Result<models::WebhooksControllerEvents200Response, Error<WebhooksControllerEventsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -120,6 +133,17 @@ pub async fn webhooks_controller_events(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -128,7 +152,7 @@ pub async fn webhooks_controller_events(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerEventsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -136,7 +160,8 @@ pub async fn webhooks_controller_events(configuration: &configuration::Configura
     }
 }
 
-pub async fn webhooks_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<WebhooksControllerListError>> {
+/// Lists the account's webhook subscriptions, newest first. Includes each endpoint's HMAC signing `secret` so the dashboard can show it for verifying the `X-Adviverse-Signature` header.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn webhooks_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::WebhookEndpoint>, Error<WebhooksControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -147,6 +172,17 @@ pub async fn webhooks_controller_list(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -155,7 +191,7 @@ pub async fn webhooks_controller_list(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -163,7 +199,8 @@ pub async fn webhooks_controller_list(configuration: &configuration::Configurati
     }
 }
 
-pub async fn webhooks_controller_ping(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<WebhooksControllerPingError>> {
+/// Synchronously delivers a signed `ping` event to the endpoint and reports the result. The attempt is logged as a delivery and retried later if it failed. Returns 400 if the endpoint is not found.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn webhooks_controller_ping(configuration: &configuration::Configuration, id: &str) -> Result<models::WebhookDeliveryResult, Error<WebhooksControllerPingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -174,6 +211,17 @@ pub async fn webhooks_controller_ping(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -182,7 +230,7 @@ pub async fn webhooks_controller_ping(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerPingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -190,7 +238,8 @@ pub async fn webhooks_controller_ping(configuration: &configuration::Configurati
     }
 }
 
-pub async fn webhooks_controller_redeliver(configuration: &configuration::Configuration, delivery_id: &str) -> Result<(), Error<WebhooksControllerRedeliverError>> {
+/// Re-sends the exact stored payload of a past delivery as a new attempt, with a signature computed from the endpoint's current secret. Returns 400 if the delivery does not belong to this account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn webhooks_controller_redeliver(configuration: &configuration::Configuration, delivery_id: &str) -> Result<models::WebhookDeliveryResult, Error<WebhooksControllerRedeliverError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -201,6 +250,17 @@ pub async fn webhooks_controller_redeliver(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -209,7 +269,7 @@ pub async fn webhooks_controller_redeliver(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerRedeliverError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -217,7 +277,8 @@ pub async fn webhooks_controller_redeliver(configuration: &configuration::Config
     }
 }
 
-pub async fn webhooks_controller_rotate_secret(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<WebhooksControllerRotateSecretError>> {
+/// Generates a new `whsec_` signing secret. The old secret stops verifying immediately, so update the receiver right away. Returns 400 if the endpoint is not found.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn webhooks_controller_rotate_secret(configuration: &configuration::Configuration, id: &str) -> Result<models::WebhookEndpoint, Error<WebhooksControllerRotateSecretError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -228,6 +289,17 @@ pub async fn webhooks_controller_rotate_secret(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -236,7 +308,7 @@ pub async fn webhooks_controller_rotate_secret(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerRotateSecretError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -244,7 +316,8 @@ pub async fn webhooks_controller_rotate_secret(configuration: &configuration::Co
     }
 }
 
-pub async fn webhooks_controller_subscribe(configuration: &configuration::Configuration, subscribe_webhook_dto: models::SubscribeWebhookDto) -> Result<(), Error<WebhooksControllerSubscribeError>> {
+/// Registers `url` to receive the listed `events` (non-empty array). The URL is checked by the SSRF guard (localhost, private and metadata addresses are rejected with 400). A `whsec_` signing secret is generated and returned. Deliveries are JSON `{ event, data, ts }` POSTs signed with HMAC-SHA256 of the body in `X-Adviverse-Signature`; failures are retried with backoff.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn webhooks_controller_subscribe(configuration: &configuration::Configuration, subscribe_webhook_dto: models::SubscribeWebhookDto) -> Result<models::WebhookEndpoint, Error<WebhooksControllerSubscribeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -255,6 +328,17 @@ pub async fn webhooks_controller_subscribe(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&subscribe_webhook_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -264,7 +348,7 @@ pub async fn webhooks_controller_subscribe(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerSubscribeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -272,7 +356,8 @@ pub async fn webhooks_controller_subscribe(configuration: &configuration::Config
     }
 }
 
-pub async fn webhooks_controller_unsubscribe(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<WebhooksControllerUnsubscribeError>> {
+/// Deletes the subscription. Unknown or foreign ids are a silent no-op.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn webhooks_controller_unsubscribe(configuration: &configuration::Configuration, id: &str) -> Result<models::WebhooksControllerUnsubscribe200Response, Error<WebhooksControllerUnsubscribeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -283,6 +368,17 @@ pub async fn webhooks_controller_unsubscribe(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -291,7 +387,7 @@ pub async fn webhooks_controller_unsubscribe(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerUnsubscribeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -299,7 +395,8 @@ pub async fn webhooks_controller_unsubscribe(configuration: &configuration::Conf
     }
 }
 
-pub async fn webhooks_controller_update(configuration: &configuration::Configuration, id: &str, update_webhook_dto: models::UpdateWebhookDto) -> Result<(), Error<WebhooksControllerUpdateError>> {
+/// Changes an endpoint's `url`, `events` and/or `active` flag (set false to pause deliveries); omitted fields are kept. A new URL goes through the SSRF guard and unknown event names are rejected with 400. Returns 400 if the endpoint is not found for this account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn webhooks_controller_update(configuration: &configuration::Configuration, id: &str, update_webhook_dto: models::UpdateWebhookDto) -> Result<models::WebhookEndpoint, Error<WebhooksControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -310,6 +407,17 @@ pub async fn webhooks_controller_update(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_webhook_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -319,7 +427,7 @@ pub async fn webhooks_controller_update(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

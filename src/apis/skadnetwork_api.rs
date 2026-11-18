@@ -30,7 +30,8 @@ pub enum SkadnetworkControllerPostbackError {
 }
 
 
-pub async fn skadnetwork_controller_health(configuration: &configuration::Configuration, ) -> Result<(), Error<SkadnetworkControllerHealthError>> {
+/// Public liveness check for the registered postback URL.  Auth: public, no credentials required.
+pub async fn skadnetwork_controller_health(configuration: &configuration::Configuration, ) -> Result<models::SkadnetworkControllerHealth200Response, Error<SkadnetworkControllerHealthError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -49,7 +50,7 @@ pub async fn skadnetwork_controller_health(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SkadnetworkControllerHealthError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -57,7 +58,8 @@ pub async fn skadnetwork_controller_health(configuration: &configuration::Config
     }
 }
 
-pub async fn skadnetwork_controller_postback(configuration: &configuration::Configuration, ) -> Result<(), Error<SkadnetworkControllerPostbackError>> {
+/// Public, rate-limited endpoint Apple POSTs signed install postbacks to. Every postback is stored once per `transaction-id`; the signature is verified, the campaign resolved from `source-identifier`/`campaign-id` (and `app-id`), and won, verified postbacks are emitted as conversions. Always answers 200 so Apple does not retry; the outcome is in `status`: attributed, duplicate, invalid_signature, verified_unmatched, verified_lost, wrong_network, unsupported, bad_request or error.  Auth: public, no credentials required.
+pub async fn skadnetwork_controller_postback(configuration: &configuration::Configuration, ) -> Result<models::SkadnetworkControllerPostback200Response, Error<SkadnetworkControllerPostbackError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -76,7 +78,7 @@ pub async fn skadnetwork_controller_postback(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SkadnetworkControllerPostbackError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

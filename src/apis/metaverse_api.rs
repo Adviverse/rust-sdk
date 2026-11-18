@@ -121,7 +121,8 @@ pub enum MetaverseControllerUpdateError {
 }
 
 
-pub async fn metaverse_controller_admin_worlds(configuration: &configuration::Configuration, ) -> Result<(), Error<MetaverseControllerAdminWorldsError>> {
+/// Admin view of up to 1000 world integrations across all accounts, with the operator's email.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn metaverse_controller_admin_worlds(configuration: &configuration::Configuration, ) -> Result<Vec<models::MetaverseControllerAdminWorlds200ResponseInner>, Error<MetaverseControllerAdminWorldsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -132,6 +133,17 @@ pub async fn metaverse_controller_admin_worlds(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -140,7 +152,7 @@ pub async fn metaverse_controller_admin_worlds(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerAdminWorldsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -148,7 +160,8 @@ pub async fn metaverse_controller_admin_worlds(configuration: &configuration::Co
     }
 }
 
-pub async fn metaverse_controller_advertiser_views(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<(), Error<MetaverseControllerAdvertiserViewsError>> {
+/// Same report as the publisher view, scoped to surface events on your campaigns between `from` and `to` (default last 30 days).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn metaverse_controller_advertiser_views(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<models::SupSurfaceReport, Error<MetaverseControllerAdvertiserViewsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -161,6 +174,17 @@ pub async fn metaverse_controller_advertiser_views(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -169,7 +193,7 @@ pub async fn metaverse_controller_advertiser_views(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerAdvertiserViewsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -177,7 +201,8 @@ pub async fn metaverse_controller_advertiser_views(configuration: &configuration
     }
 }
 
-pub async fn metaverse_controller_claim(configuration: &configuration::Configuration, claim_surface_dto: models::ClaimSurfaceDto) -> Result<(), Error<MetaverseControllerClaimError>> {
+/// Attaches the pending surface showing `code` to your account and starts serving: creates a `surface` placement (signed with the world's attestation key) under a per-world property that inherits the world's trust tier. Optional spatial details: `shopId`, `world`, `surfaceType`, `posX/Y/Z`, `widthM`, `heightM`, `floorCpm`, `audienceMultiplier` (default 1), `maxDistanceM`. 404 if no surface is waiting for that code.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn metaverse_controller_claim(configuration: &configuration::Configuration, claim_surface_dto: models::ClaimSurfaceDto) -> Result<models::SupSurface, Error<MetaverseControllerClaimError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -188,6 +213,17 @@ pub async fn metaverse_controller_claim(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&claim_surface_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -197,7 +233,7 @@ pub async fn metaverse_controller_claim(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerClaimError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -205,7 +241,8 @@ pub async fn metaverse_controller_claim(configuration: &configuration::Configura
     }
 }
 
-pub async fn metaverse_controller_create_world(configuration: &configuration::Configuration, create_world_dto: models::CreateWorldDto) -> Result<(), Error<MetaverseControllerCreateWorldError>> {
+/// Creates a world integration for a metaverse operator from `name` (required) and optional `networkId`. New worlds start `unverified` (their surfaces serve CPA-only until trusted). The response includes `signing_secret`, which the world's server uses to attest proofs of view; it is returned only here. 400 if name is empty.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn metaverse_controller_create_world(configuration: &configuration::Configuration, create_world_dto: models::CreateWorldDto) -> Result<models::MetaverseControllerCreateWorld201Response, Error<MetaverseControllerCreateWorldError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -216,6 +253,17 @@ pub async fn metaverse_controller_create_world(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_world_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -225,7 +273,7 @@ pub async fn metaverse_controller_create_world(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerCreateWorldError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -233,7 +281,8 @@ pub async fn metaverse_controller_create_world(configuration: &configuration::Co
     }
 }
 
-pub async fn metaverse_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<MetaverseControllerGetError>> {
+/// Returns one of your surfaces with its serving tag. 404 if not found, 403 if another account owns it.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn metaverse_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<models::SupSurface, Error<MetaverseControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -244,6 +293,17 @@ pub async fn metaverse_controller_get(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -252,7 +312,7 @@ pub async fn metaverse_controller_get(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -260,7 +320,8 @@ pub async fn metaverse_controller_get(configuration: &configuration::Configurati
     }
 }
 
-pub async fn metaverse_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<MetaverseControllerListError>> {
+/// Returns your surfaces, newest first, with `online` (heartbeat within 5 minutes) and the latest heartbeat time.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn metaverse_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::MetaverseControllerList200ResponseInner>, Error<MetaverseControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -271,6 +332,17 @@ pub async fn metaverse_controller_list(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -279,7 +351,7 @@ pub async fn metaverse_controller_list(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -287,7 +359,8 @@ pub async fn metaverse_controller_list(configuration: &configuration::Configurat
     }
 }
 
-pub async fn metaverse_controller_list_worlds(configuration: &configuration::Configuration, ) -> Result<(), Error<MetaverseControllerListWorldsError>> {
+/// Returns the caller's world integrations (without signing secrets), newest first.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn metaverse_controller_list_worlds(configuration: &configuration::Configuration, ) -> Result<Vec<models::SupWorld>, Error<MetaverseControllerListWorldsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -298,6 +371,17 @@ pub async fn metaverse_controller_list_worlds(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -306,7 +390,7 @@ pub async fn metaverse_controller_list_worlds(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerListWorldsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -314,7 +398,8 @@ pub async fn metaverse_controller_list_worlds(configuration: &configuration::Con
     }
 }
 
-pub async fn metaverse_controller_pair_init(configuration: &configuration::Configuration, surface_pair_init_dto: models::SurfacePairInitDto) -> Result<(), Error<MetaverseControllerPairInitError>> {
+/// Public, rate-limited. A world client calls this with `worldId` (must be an active world) and optional `surfaceType` (screen, poster, portal; default screen). Returns a pairing code to show in-world and a poll token. 404 for an unknown world.  Auth: public, no credentials required.
+pub async fn metaverse_controller_pair_init(configuration: &configuration::Configuration, surface_pair_init_dto: models::SurfacePairInitDto) -> Result<models::ScreensControllerPairInit201Response, Error<MetaverseControllerPairInitError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -334,7 +419,7 @@ pub async fn metaverse_controller_pair_init(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerPairInitError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -342,7 +427,8 @@ pub async fn metaverse_controller_pair_init(configuration: &configuration::Confi
     }
 }
 
-pub async fn metaverse_controller_pair_status(configuration: &configuration::Configuration, poll_token: &str) -> Result<(), Error<MetaverseControllerPairStatusError>> {
+/// Public, rate-limited. Poll with `?pollToken=` until a shop owner claims the code, then receive the serving `tag`. 404 for an unknown token.  Auth: public, no credentials required.
+pub async fn metaverse_controller_pair_status(configuration: &configuration::Configuration, poll_token: &str) -> Result<models::ScreensControllerPairStatus200Response, Error<MetaverseControllerPairStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -362,7 +448,7 @@ pub async fn metaverse_controller_pair_status(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerPairStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -370,7 +456,8 @@ pub async fn metaverse_controller_pair_status(configuration: &configuration::Con
     }
 }
 
-pub async fn metaverse_controller_publisher_views(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<(), Error<MetaverseControllerPublisherViewsError>> {
+/// Summarizes and lists (up to 2000) surface events on your surfaces between `from` and `to` (default last 30 days): views, valid views, portal enters and completes, spend, and distinct surfaces.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn metaverse_controller_publisher_views(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<models::SupSurfaceReport, Error<MetaverseControllerPublisherViewsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -383,6 +470,17 @@ pub async fn metaverse_controller_publisher_views(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -391,7 +489,7 @@ pub async fn metaverse_controller_publisher_views(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerPublisherViewsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -399,7 +497,8 @@ pub async fn metaverse_controller_publisher_views(configuration: &configuration:
     }
 }
 
-pub async fn metaverse_controller_score_now(configuration: &configuration::Configuration, ) -> Result<(), Error<MetaverseControllerScoreNowError>> {
+/// Scores every active world's last 7 days of surface traffic immediately (normally a scheduled job), stores the snapshots, and promotes or demotes worlds whose computed tier differs from their current one.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn metaverse_controller_score_now(configuration: &configuration::Configuration, ) -> Result<models::MetaverseControllerScoreNow201Response, Error<MetaverseControllerScoreNowError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -410,6 +509,17 @@ pub async fn metaverse_controller_score_now(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -418,7 +528,7 @@ pub async fn metaverse_controller_score_now(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerScoreNowError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -426,7 +536,8 @@ pub async fn metaverse_controller_score_now(configuration: &configuration::Confi
     }
 }
 
-pub async fn metaverse_controller_set_status(configuration: &configuration::Configuration, id: &str, set_surface_status_dto: models::SetSurfaceStatusDto) -> Result<(), Error<MetaverseControllerSetStatusError>> {
+/// Sets `status` (`active`/`paused`) on the surface and its placement and republishes the index. 400 if not paired yet; 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn metaverse_controller_set_status(configuration: &configuration::Configuration, id: &str, set_surface_status_dto: models::SetSurfaceStatusDto) -> Result<models::ScreensControllerSetStatus201Response, Error<MetaverseControllerSetStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -437,6 +548,17 @@ pub async fn metaverse_controller_set_status(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_surface_status_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -446,7 +568,7 @@ pub async fn metaverse_controller_set_status(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerSetStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -454,7 +576,8 @@ pub async fn metaverse_controller_set_status(configuration: &configuration::Conf
     }
 }
 
-pub async fn metaverse_controller_set_world_trust(configuration: &configuration::Configuration, id: &str, set_world_trust_dto: models::SetWorldTrustDto) -> Result<(), Error<MetaverseControllerSetWorldTrustError>> {
+/// Sets `trust` to `trusted` (surfaces may sell CPM) or `unverified` (CPA-only), cascades it to the world's surface properties, and republishes the index. 404 if the world does not exist.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn metaverse_controller_set_world_trust(configuration: &configuration::Configuration, id: &str, set_world_trust_dto: models::SetWorldTrustDto) -> Result<models::MetaverseControllerSetWorldTrust201Response, Error<MetaverseControllerSetWorldTrustError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -465,6 +588,17 @@ pub async fn metaverse_controller_set_world_trust(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_world_trust_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -474,7 +608,7 @@ pub async fn metaverse_controller_set_world_trust(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerSetWorldTrustError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -482,7 +616,8 @@ pub async fn metaverse_controller_set_world_trust(configuration: &configuration:
     }
 }
 
-pub async fn metaverse_controller_trust_scores(configuration: &configuration::Configuration, ) -> Result<(), Error<MetaverseControllerTrustScoresError>> {
+/// Admin view of the latest automatic trust-score snapshot per world (7-day view volume, valid and attested rates, unique-user ratio, dwell-time variation, the tier the scorer chose, and its factors).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn metaverse_controller_trust_scores(configuration: &configuration::Configuration, ) -> Result<Vec<models::MetaverseControllerTrustScores200ResponseInner>, Error<MetaverseControllerTrustScoresError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -493,6 +628,17 @@ pub async fn metaverse_controller_trust_scores(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -501,7 +647,7 @@ pub async fn metaverse_controller_trust_scores(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerTrustScoresError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -509,7 +655,8 @@ pub async fn metaverse_controller_trust_scores(configuration: &configuration::Co
     }
 }
 
-pub async fn metaverse_controller_update(configuration: &configuration::Configuration, id: &str, update_surface_dto: models::UpdateSurfaceDto) -> Result<(), Error<MetaverseControllerUpdateError>> {
+/// Edits `surfaceType`, `floorCpm`, `audienceMultiplier` and `maxDistanceM` on a paired surface (synced into its placement settings) and republishes the index. 400 if not paired yet; 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn metaverse_controller_update(configuration: &configuration::Configuration, id: &str, update_surface_dto: models::UpdateSurfaceDto) -> Result<models::SupSurface, Error<MetaverseControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -520,6 +667,17 @@ pub async fn metaverse_controller_update(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_surface_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -529,7 +687,7 @@ pub async fn metaverse_controller_update(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MetaverseControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

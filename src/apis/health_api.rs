@@ -30,7 +30,8 @@ pub enum HealthControllerMetricsError {
 }
 
 
-pub async fn health_controller_health(configuration: &configuration::Configuration, ) -> Result<(), Error<HealthControllerHealthError>> {
+/// Liveness check that also runs `SELECT 1` against Postgres. Returns `status: \"ok\"` when the database answers, otherwise `degraded` with `db: false` (still HTTP 200). No authentication.  Auth: public, no credentials required.
+pub async fn health_controller_health(configuration: &configuration::Configuration, ) -> Result<models::HealthControllerHealth200Response, Error<HealthControllerHealthError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -49,7 +50,7 @@ pub async fn health_controller_health(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<HealthControllerHealthError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -57,7 +58,8 @@ pub async fn health_controller_health(configuration: &configuration::Configurati
     }
 }
 
-pub async fn health_controller_metrics(configuration: &configuration::Configuration, ) -> Result<(), Error<HealthControllerMetricsError>> {
+/// Prometheus text exposition of control-plane process metrics (prefixed `control_plane_`). When the server has a metrics token configured it must be sent as a Bearer token or `?token=`, otherwise 403; without one the endpoint is open.  Auth: public, no credentials required.
+pub async fn health_controller_metrics(configuration: &configuration::Configuration, ) -> Result<String, Error<HealthControllerMetricsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -76,7 +78,7 @@ pub async fn health_controller_metrics(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<HealthControllerMetricsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

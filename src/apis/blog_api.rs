@@ -79,7 +79,8 @@ pub enum BlogControllerUpdateError {
 }
 
 
-pub async fn blog_controller_admin_list(configuration: &configuration::Configuration, locale: &str) -> Result<(), Error<BlogControllerAdminListError>> {
+/// Returns every post, including unpublished ones, optionally filtered by `locale`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn blog_controller_admin_list(configuration: &configuration::Configuration, locale: &str) -> Result<Vec<models::BlogPost>, Error<BlogControllerAdminListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -91,6 +92,17 @@ pub async fn blog_controller_admin_list(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -99,7 +111,7 @@ pub async fn blog_controller_admin_list(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerAdminListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -107,7 +119,8 @@ pub async fn blog_controller_admin_list(configuration: &configuration::Configura
     }
 }
 
-pub async fn blog_controller_create(configuration: &configuration::Configuration, create_post_dto: models::CreatePostDto) -> Result<(), Error<BlogControllerCreateError>> {
+/// Creates a post from `slug` and `title` with optional `locale` (`en`), `tag` (`News`), `author` (`Adviverse Team`), `excerpt`, Markdown `body`, `cover_image`, `published_at` (now), `position` and `published` (true). An existing post with the same slug and locale is overwritten (upsert). Clears the public cache. Posts without a cover get a generated SVG cover at the next service start.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn blog_controller_create(configuration: &configuration::Configuration, create_post_dto: models::CreatePostDto) -> Result<models::BlogPost, Error<BlogControllerCreateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -118,6 +131,17 @@ pub async fn blog_controller_create(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_post_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -127,7 +151,7 @@ pub async fn blog_controller_create(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerCreateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -135,7 +159,8 @@ pub async fn blog_controller_create(configuration: &configuration::Configuration
     }
 }
 
-pub async fn blog_controller_get(configuration: &configuration::Configuration, slug: &str, locale: &str) -> Result<(), Error<BlogControllerGetError>> {
+/// Public. Returns a published post by `slug` and `locale` (default `en`). An unknown or unpublished slug returns HTTP 200 with `{ error: \"not_found\" }`, not 404.  Auth: public, no credentials required.
+pub async fn blog_controller_get(configuration: &configuration::Configuration, slug: &str, locale: &str) -> Result<models::BlogControllerGet200Response, Error<BlogControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -155,7 +180,7 @@ pub async fn blog_controller_get(configuration: &configuration::Configuration, s
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -163,7 +188,8 @@ pub async fn blog_controller_get(configuration: &configuration::Configuration, s
     }
 }
 
-pub async fn blog_controller_index_html(configuration: &configuration::Configuration, ) -> Result<(), Error<BlogControllerIndexHtmlError>> {
+/// Public, server-rendered HTML for /blog listing published English posts. Cached (max-age 300, s-maxage 3600).  Auth: public, no credentials required.
+pub async fn blog_controller_index_html(configuration: &configuration::Configuration, ) -> Result<String, Error<BlogControllerIndexHtmlError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -182,7 +208,7 @@ pub async fn blog_controller_index_html(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerIndexHtmlError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -190,7 +216,8 @@ pub async fn blog_controller_index_html(configuration: &configuration::Configura
     }
 }
 
-pub async fn blog_controller_list(configuration: &configuration::Configuration, locale: &str, tag: &str) -> Result<(), Error<BlogControllerListError>> {
+/// Public. Returns published posts for `locale` (default `en`), newest `published_at` first, optionally filtered by `tag`. Reads are cached in Redis for 60 seconds.  Auth: public, no credentials required.
+pub async fn blog_controller_list(configuration: &configuration::Configuration, locale: &str, tag: &str) -> Result<Vec<models::BlogPost>, Error<BlogControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -211,7 +238,7 @@ pub async fn blog_controller_list(configuration: &configuration::Configuration, 
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -219,7 +246,8 @@ pub async fn blog_controller_list(configuration: &configuration::Configuration, 
     }
 }
 
-pub async fn blog_controller_page_html(configuration: &configuration::Configuration, slug: &str) -> Result<(), Error<BlogControllerPageHtmlError>> {
+/// Public, server-rendered HTML for one English post, with its Markdown body rendered escape-first. Unknown slugs return a 404 HTML page.  Auth: public, no credentials required.
+pub async fn blog_controller_page_html(configuration: &configuration::Configuration, slug: &str) -> Result<String, Error<BlogControllerPageHtmlError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -238,7 +266,7 @@ pub async fn blog_controller_page_html(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerPageHtmlError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -246,7 +274,8 @@ pub async fn blog_controller_page_html(configuration: &configuration::Configurat
     }
 }
 
-pub async fn blog_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<BlogControllerRemoveError>> {
+/// Deletes the post and clears the public cache. Returns `{ ok: true }` even for an unknown id.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn blog_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<BlogControllerRemoveError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -257,6 +286,17 @@ pub async fn blog_controller_remove(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -265,7 +305,7 @@ pub async fn blog_controller_remove(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerRemoveError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -273,7 +313,8 @@ pub async fn blog_controller_remove(configuration: &configuration::Configuration
     }
 }
 
-pub async fn blog_controller_sitemap(configuration: &configuration::Configuration, ) -> Result<(), Error<BlogControllerSitemapError>> {
+/// Public XML sitemap listing /blog and every published English post page.  Auth: public, no credentials required.
+pub async fn blog_controller_sitemap(configuration: &configuration::Configuration, ) -> Result<String, Error<BlogControllerSitemapError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -292,7 +333,7 @@ pub async fn blog_controller_sitemap(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerSitemapError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -300,7 +341,8 @@ pub async fn blog_controller_sitemap(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn blog_controller_update(configuration: &configuration::Configuration, id: &str, update_post_dto: models::UpdatePostDto) -> Result<(), Error<BlogControllerUpdateError>> {
+/// Partially updates any post field (slug, locale, title, tag, author, excerpt, body, cover_image, position, published, published_at) and clears the public cache. Returns the updated post, or null for an unknown id.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn blog_controller_update(configuration: &configuration::Configuration, id: &str, update_post_dto: models::UpdatePostDto) -> Result<models::BlogPost, Error<BlogControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -311,6 +353,17 @@ pub async fn blog_controller_update(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_post_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -320,7 +373,7 @@ pub async fn blog_controller_update(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<BlogControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

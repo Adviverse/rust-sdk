@@ -79,7 +79,8 @@ pub enum RewardsControllerVoucherSecretError {
 }
 
 
-pub async fn rewards_controller_admin_payouts(configuration: &configuration::Configuration, limit: &str) -> Result<(), Error<RewardsControllerAdminPayoutsError>> {
+/// Admin view of the most recent reward payouts across all pools, including delivery attempts and last error. `?limit=` defaults to 200 (max 1000).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn rewards_controller_admin_payouts(configuration: &configuration::Configuration, limit: &str) -> Result<Vec<models::RewardsControllerAdminPayouts200ResponseInner>, Error<RewardsControllerAdminPayoutsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -91,6 +92,17 @@ pub async fn rewards_controller_admin_payouts(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -99,7 +111,7 @@ pub async fn rewards_controller_admin_payouts(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerAdminPayoutsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -107,7 +119,8 @@ pub async fn rewards_controller_admin_payouts(configuration: &configuration::Con
     }
 }
 
-pub async fn rewards_controller_create_onchain_pool(configuration: &configuration::Configuration, create_onchain_pool_dto: models::CreateOnchainPoolDto) -> Result<(), Error<RewardsControllerCreateOnchainPoolError>> {
+/// Creates or converts a campaign's pool to `onchain_creative` mode: no escrow and no ledger movement, because your own contract pays users on-chain. Adviverse verifies each completion and issues the creative a signed single-use eligibility voucher. `perCompletion`, `token` and optional `chain` are display/report values. The response includes `voucher_secret`, used to verify vouchers before disbursing (empty if the platform voucher key is not configured). 404 if the campaign is not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn rewards_controller_create_onchain_pool(configuration: &configuration::Configuration, create_onchain_pool_dto: models::CreateOnchainPoolDto) -> Result<models::RewPool, Error<RewardsControllerCreateOnchainPoolError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -118,6 +131,17 @@ pub async fn rewards_controller_create_onchain_pool(configuration: &configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_onchain_pool_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -127,7 +151,7 @@ pub async fn rewards_controller_create_onchain_pool(configuration: &configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerCreateOnchainPoolError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -135,7 +159,8 @@ pub async fn rewards_controller_create_onchain_pool(configuration: &configuratio
     }
 }
 
-pub async fn rewards_controller_fund_pool(configuration: &configuration::Configuration, fund_pool_dto: models::FundPoolDto) -> Result<(), Error<RewardsControllerFundPoolError>> {
+/// Creates the reward pool for one of your campaigns, or adds to it, and escrows `amount` from your available balance in the same transaction (a `reward_fund` ledger entry). `perCompletion` is the fixed reward per verified completion; `token` defaults to your account currency; `perUserDailyCap`/`perWalletDailyCap` default to 5. 404 if the campaign is not yours; fails with insufficient funds if your balance cannot cover `amount`.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn rewards_controller_fund_pool(configuration: &configuration::Configuration, fund_pool_dto: models::FundPoolDto) -> Result<models::RewPool, Error<RewardsControllerFundPoolError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -146,6 +171,17 @@ pub async fn rewards_controller_fund_pool(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&fund_pool_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -155,7 +191,7 @@ pub async fn rewards_controller_fund_pool(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerFundPoolError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -163,7 +199,8 @@ pub async fn rewards_controller_fund_pool(configuration: &configuration::Configu
     }
 }
 
-pub async fn rewards_controller_get_pool(configuration: &configuration::Configuration, campaign_id: &str) -> Result<(), Error<RewardsControllerGetPoolError>> {
+/// Returns the reward pool for `campaignId`; on-chain pools also include `voucher_secret`. 404 if you have no pool for that campaign.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn rewards_controller_get_pool(configuration: &configuration::Configuration, campaign_id: &str) -> Result<models::RewPool, Error<RewardsControllerGetPoolError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -174,6 +211,17 @@ pub async fn rewards_controller_get_pool(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -182,7 +230,7 @@ pub async fn rewards_controller_get_pool(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerGetPoolError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -190,7 +238,8 @@ pub async fn rewards_controller_get_pool(configuration: &configuration::Configur
     }
 }
 
-pub async fn rewards_controller_list_pools(configuration: &configuration::Configuration, ) -> Result<(), Error<RewardsControllerListPoolsError>> {
+/// Returns all of your campaign reward pools, newest first. Voucher secrets are not included here.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn rewards_controller_list_pools(configuration: &configuration::Configuration, ) -> Result<Vec<models::RewPool>, Error<RewardsControllerListPoolsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -201,6 +250,17 @@ pub async fn rewards_controller_list_pools(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -209,7 +269,7 @@ pub async fn rewards_controller_list_pools(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerListPoolsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -217,7 +277,8 @@ pub async fn rewards_controller_list_pools(configuration: &configuration::Config
     }
 }
 
-pub async fn rewards_controller_report(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<(), Error<RewardsControllerReportError>> {
+/// Reports reward payouts on your pools between `from` and `to` (default last 30 days): totals by status (sent, pending, failed, on-chain, on-chain with a tx hash), amount paid and distinct recipient wallets, a per-campaign breakdown, current pool balances, and up to 2000 payout rows.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn rewards_controller_report(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<models::RewardsControllerReport200Response, Error<RewardsControllerReportError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -230,6 +291,17 @@ pub async fn rewards_controller_report(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -238,7 +310,7 @@ pub async fn rewards_controller_report(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerReportError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -246,7 +318,8 @@ pub async fn rewards_controller_report(configuration: &configuration::Configurat
     }
 }
 
-pub async fn rewards_controller_set_pool_status(configuration: &configuration::Configuration, campaign_id: &str, set_pool_status_dto: models::SetPoolStatusDto) -> Result<(), Error<RewardsControllerSetPoolStatusError>> {
+/// Sets the pool `status` to `paused` (stops accruing completions) or `active`. 404 if you have no pool for that campaign.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn rewards_controller_set_pool_status(configuration: &configuration::Configuration, campaign_id: &str, set_pool_status_dto: models::SetPoolStatusDto) -> Result<models::RewardsControllerSetPoolStatus201Response, Error<RewardsControllerSetPoolStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -257,6 +330,17 @@ pub async fn rewards_controller_set_pool_status(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_pool_status_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -266,7 +350,7 @@ pub async fn rewards_controller_set_pool_status(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerSetPoolStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -274,7 +358,8 @@ pub async fn rewards_controller_set_pool_status(configuration: &configuration::C
     }
 }
 
-pub async fn rewards_controller_set_world_webhook(configuration: &configuration::Configuration, set_world_webhook_dto: models::SetWorldWebhookDto) -> Result<(), Error<RewardsControllerSetWorldWebhookError>> {
+/// Points one of your world integrations at `url`. Pending reward payouts for that operator are POSTed there as signed `reward.payout` webhooks (HMAC with the world's signing secret) so the operator can pay the user; delivery is retried up to 8 times. 404 if the world is not yours.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn rewards_controller_set_world_webhook(configuration: &configuration::Configuration, set_world_webhook_dto: models::SetWorldWebhookDto) -> Result<models::RewardsControllerSetWorldWebhook201Response, Error<RewardsControllerSetWorldWebhookError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -285,6 +370,17 @@ pub async fn rewards_controller_set_world_webhook(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_world_webhook_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -294,7 +390,7 @@ pub async fn rewards_controller_set_world_webhook(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerSetWorldWebhookError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -302,7 +398,8 @@ pub async fn rewards_controller_set_world_webhook(configuration: &configuration:
     }
 }
 
-pub async fn rewards_controller_voucher_secret(configuration: &configuration::Configuration, campaign_id: &str) -> Result<(), Error<RewardsControllerVoucherSecretError>> {
+/// Returns the HMAC voucher secret for the campaign's on-chain reward pool. 404 if you have no pool for the campaign, 400 if the pool is not in on-chain mode.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn rewards_controller_voucher_secret(configuration: &configuration::Configuration, campaign_id: &str) -> Result<models::RewardsControllerVoucherSecret200Response, Error<RewardsControllerVoucherSecretError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -313,6 +410,17 @@ pub async fn rewards_controller_voucher_secret(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -321,7 +429,7 @@ pub async fn rewards_controller_voucher_secret(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RewardsControllerVoucherSecretError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

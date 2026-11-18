@@ -85,6 +85,13 @@ pub enum PublisherControllerListPropertiesError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`publisher_controller_property_ads_txt`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PublisherControllerPropertyAdsTxtError {
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`publisher_controller_remove_property`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -156,7 +163,8 @@ pub enum PublisherControllerVerifyServingDomainError {
 }
 
 
-pub async fn publisher_controller_app_ads_txt(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerAppAdsTxtError>> {
+/// Returns plain-text app-ads.txt: a comment, the network's own `adviverse.com, <publisherAccountId>, DIRECT` line, then each configured authorized-seller entry (`domain, sellerId, DIRECT|RESELLER[, certId]`). 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_app_ads_txt(configuration: &configuration::Configuration, id: &str) -> Result<String, Error<PublisherControllerAppAdsTxtError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -167,6 +175,17 @@ pub async fn publisher_controller_app_ads_txt(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -175,7 +194,7 @@ pub async fn publisher_controller_app_ads_txt(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerAppAdsTxtError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -183,7 +202,8 @@ pub async fn publisher_controller_app_ads_txt(configuration: &configuration::Con
     }
 }
 
-pub async fn publisher_controller_create_app(configuration: &configuration::Configuration, create_app_dto: models::CreateAppDto) -> Result<(), Error<PublisherControllerCreateAppError>> {
+/// Creates a `mobile_app` or `ctv` property from `kind`, `name`, `bundleId` and `platform` (ios, android, roku, firetv, appletv, androidtv, web), with optional `storeUrl`, `appStoreId`, `category` and `ctvMeta`. The bundle id is stored in both `bundle_id` and `domain`; the app enters the normal `pending` approval flow with file verification.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_create_app(configuration: &configuration::Configuration, create_app_dto: models::CreateAppDto) -> Result<models::PubProperty, Error<PublisherControllerCreateAppError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -194,6 +214,17 @@ pub async fn publisher_controller_create_app(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_app_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -203,7 +234,7 @@ pub async fn publisher_controller_create_app(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerCreateAppError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -211,7 +242,8 @@ pub async fn publisher_controller_create_app(configuration: &configuration::Conf
     }
 }
 
-pub async fn publisher_controller_create_placement(configuration: &configuration::Configuration, create_placement_dto: models::CreatePlacementDto) -> Result<(), Error<PublisherControllerCreatePlacementError>> {
+/// Creates an ad unit on one of your properties (`propertyId`, `name`, `format` required) with a generated `tag_key`. Optional fields cover size (`width`/`height` or `responsive`), `floorCpm`, `revShare` (defaults to the network rev-share), `auctionType` (default `first_price`), `passbackUrl`, `frequencyCap`, format `settings`, and yield fill (`houseOnly`, `houseShare` clamped to 0-1, `houseBackfill`, `floorFallback`). Popunders default to a 1-per-visitor-per-24h frequency cap unless `frequencyCap` is given (`{}` opts out). The serving index is republished. 404 if the property is missing, 403 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_create_placement(configuration: &configuration::Configuration, create_placement_dto: models::CreatePlacementDto) -> Result<models::PubPlacement, Error<PublisherControllerCreatePlacementError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -222,6 +254,17 @@ pub async fn publisher_controller_create_placement(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_placement_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -231,7 +274,7 @@ pub async fn publisher_controller_create_placement(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerCreatePlacementError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -239,7 +282,8 @@ pub async fn publisher_controller_create_placement(configuration: &configuration
     }
 }
 
-pub async fn publisher_controller_create_property(configuration: &configuration::Configuration, create_property_dto: models::CreatePropertyDto) -> Result<(), Error<PublisherControllerCreatePropertyError>> {
+/// Creates a property with a fresh `adviverse-verify-…` verification token. `domain` is required; `kind` defaults to `website` and `verificationMethod` to `dns`. Website properties start `unverified`/`pending` and must be verified before they serve. With `kind: \"cli\"` the property is a terminal/AI-agent tool: `domain` is treated as a tool name and turned into a unique slug, and the row is created already `verified` and `approved` (no domain to prove).  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_create_property(configuration: &configuration::Configuration, create_property_dto: models::CreatePropertyDto) -> Result<models::PubProperty, Error<PublisherControllerCreatePropertyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -250,6 +294,17 @@ pub async fn publisher_controller_create_property(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_property_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -259,7 +314,7 @@ pub async fn publisher_controller_create_property(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerCreatePropertyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -267,7 +322,8 @@ pub async fn publisher_controller_create_property(configuration: &configuration:
     }
 }
 
-pub async fn publisher_controller_disable_signing(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerDisableSigningError>> {
+/// Removes the placement's signing secret so it goes back to unsigned serving, and republishes the index. 404 if not your placement.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_disable_signing(configuration: &configuration::Configuration, id: &str) -> Result<models::PublisherControllerDisableSigning200Response, Error<PublisherControllerDisableSigningError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -278,6 +334,17 @@ pub async fn publisher_controller_disable_signing(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -286,7 +353,7 @@ pub async fn publisher_controller_disable_signing(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerDisableSigningError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -294,7 +361,8 @@ pub async fn publisher_controller_disable_signing(configuration: &configuration:
     }
 }
 
-pub async fn publisher_controller_domain_connect(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerDomainConnectError>> {
+/// Discovers whether the property domain's DNS provider supports DomainConnect (TXT at `_domainconnect.<domain>`, then the provider settings `urlSyncUX`). If it does, returns `supported: true` with an `applyUrl` the user opens to approve writing the verification TXT record; afterwards call verify. On any discovery failure it returns `supported: false, method: \"manual\"` with the token so the publisher can add the TXT record by hand.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_domain_connect(configuration: &configuration::Configuration, id: &str) -> Result<models::PublisherControllerDomainConnect201Response, Error<PublisherControllerDomainConnectError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -305,6 +373,17 @@ pub async fn publisher_controller_domain_connect(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -313,7 +392,7 @@ pub async fn publisher_controller_domain_connect(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerDomainConnectError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -321,7 +400,8 @@ pub async fn publisher_controller_domain_connect(configuration: &configuration::
     }
 }
 
-pub async fn publisher_controller_get_app(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerGetAppError>> {
+/// Returns one app/CTV property. 404 if it does not exist (or is a web property), 403 if another publisher owns it.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_get_app(configuration: &configuration::Configuration, id: &str) -> Result<models::PubProperty, Error<PublisherControllerGetAppError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -332,6 +412,17 @@ pub async fn publisher_controller_get_app(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -340,7 +431,7 @@ pub async fn publisher_controller_get_app(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerGetAppError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -348,7 +439,8 @@ pub async fn publisher_controller_get_app(configuration: &configuration::Configu
     }
 }
 
-pub async fn publisher_controller_list_apps(configuration: &configuration::Configuration, ) -> Result<(), Error<PublisherControllerListAppsError>> {
+/// Returns the publisher's properties of kind `mobile_app` or `ctv`, newest first. Web properties are excluded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_list_apps(configuration: &configuration::Configuration, ) -> Result<Vec<models::PubProperty>, Error<PublisherControllerListAppsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -359,6 +451,17 @@ pub async fn publisher_controller_list_apps(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -367,7 +470,7 @@ pub async fn publisher_controller_list_apps(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerListAppsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -375,7 +478,8 @@ pub async fn publisher_controller_list_apps(configuration: &configuration::Confi
     }
 }
 
-pub async fn publisher_controller_list_placements(configuration: &configuration::Configuration, ) -> Result<(), Error<PublisherControllerListPlacementsError>> {
+/// Returns every non-deleted placement across all of the publisher's properties, newest first. Optional `limit`/`offset` paginate.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_list_placements(configuration: &configuration::Configuration, ) -> Result<Vec<models::PubPlacement>, Error<PublisherControllerListPlacementsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -386,6 +490,17 @@ pub async fn publisher_controller_list_placements(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -394,7 +509,7 @@ pub async fn publisher_controller_list_placements(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerListPlacementsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -402,7 +517,8 @@ pub async fn publisher_controller_list_placements(configuration: &configuration:
     }
 }
 
-pub async fn publisher_controller_list_properties(configuration: &configuration::Configuration, ) -> Result<(), Error<PublisherControllerListPropertiesError>> {
+/// Returns every non-deleted property (websites, CLI tools, mobile apps, CTV apps) owned by the publisher, newest first. Optional `limit` (1-500) and `offset` query params paginate; without `limit` the full set is returned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_list_properties(configuration: &configuration::Configuration, ) -> Result<Vec<models::PubProperty>, Error<PublisherControllerListPropertiesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -413,6 +529,17 @@ pub async fn publisher_controller_list_properties(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -421,7 +548,7 @@ pub async fn publisher_controller_list_properties(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerListPropertiesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -429,7 +556,47 @@ pub async fn publisher_controller_list_properties(configuration: &configuration:
     }
 }
 
-pub async fn publisher_controller_remove_property(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerRemovePropertyError>> {
+/// Returns the plain-text ads.txt content to publish at `https://<domain>/ads.txt`: a comment line plus `adviverse.com, <publisherAccountId>, DIRECT` (the seller id matches sellers.json). 404 if not found, 403 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_property_ads_txt(configuration: &configuration::Configuration, id: &str) -> Result<String, Error<PublisherControllerPropertyAdsTxtError>> {
+    let local_var_configuration = configuration;
+
+    let local_var_client = &local_var_configuration.client;
+
+    let local_var_uri_str = format!("{}/v1/publisher/properties/{id}/ads.txt", local_var_configuration.base_path, id=crate::apis::urlencode(id));
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
+
+    if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
+        local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
+    }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
+
+    let local_var_req = local_var_req_builder.build()?;
+    let local_var_resp = local_var_client.execute(local_var_req).await?;
+
+    let local_var_status = local_var_resp.status();
+    let local_var_content = local_var_resp.text().await?;
+
+    if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
+        serde_json::from_str(&local_var_content).map_err(Error::from)
+    } else {
+        let local_var_entity: Option<PublisherControllerPropertyAdsTxtError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
+        Err(Error::ResponseError(local_var_error))
+    }
+}
+
+/// Soft-deletes the property and all of its placements, then republishes the serving index so ads stop promptly. 404 if not found, 403 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_remove_property(configuration: &configuration::Configuration, id: &str) -> Result<models::AuthControllerResendVerification201Response, Error<PublisherControllerRemovePropertyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -440,6 +607,17 @@ pub async fn publisher_controller_remove_property(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -448,7 +626,7 @@ pub async fn publisher_controller_remove_property(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerRemovePropertyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -456,7 +634,8 @@ pub async fn publisher_controller_remove_property(configuration: &configuration:
     }
 }
 
-pub async fn publisher_controller_remove_serving_domain(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerRemoveServingDomainError>> {
+/// Clears the property's custom serving domain; tags fall back to the default serving edge and the edge stops issuing certificates for the old host. 404/403 if the property is not found or not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_remove_serving_domain(configuration: &configuration::Configuration, id: &str) -> Result<models::PubServingDomain, Error<PublisherControllerRemoveServingDomainError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -467,6 +646,17 @@ pub async fn publisher_controller_remove_serving_domain(configuration: &configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -475,7 +665,7 @@ pub async fn publisher_controller_remove_serving_domain(configuration: &configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerRemoveServingDomainError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -483,7 +673,8 @@ pub async fn publisher_controller_remove_serving_domain(configuration: &configur
     }
 }
 
-pub async fn publisher_controller_rotate_signing_secret(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerRotateSigningSecretError>> {
+/// Creates a new `tsk_…` HMAC secret for the placement, replacing any previous one, and republishes the index. With a secret set, the engine only serves terminal requests (and accepts integrity pings) that carry a valid signature, so embed it in your signing client. The secret is returned only once. 404 if not your placement.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_rotate_signing_secret(configuration: &configuration::Configuration, id: &str) -> Result<models::PublisherControllerRotateSigningSecret201Response, Error<PublisherControllerRotateSigningSecretError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -494,6 +685,17 @@ pub async fn publisher_controller_rotate_signing_secret(configuration: &configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -502,7 +704,7 @@ pub async fn publisher_controller_rotate_signing_secret(configuration: &configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerRotateSigningSecretError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -510,7 +712,8 @@ pub async fn publisher_controller_rotate_signing_secret(configuration: &configur
     }
 }
 
-pub async fn publisher_controller_set_serving_domain(configuration: &configuration::Configuration, id: &str, serving_domain_dto: models::ServingDomainDto) -> Result<(), Error<PublisherControllerSetServingDomainError>> {
+/// Sets the property's custom ad-serving hostname (anti-adblock). Body `{ domain }` is normalized to a bare hostname; an empty/missing domain clears it. The domain starts unverified: the publisher must CNAME it to `cname_target` and call the verify endpoint before tags use it. 400 for an invalid hostname or one already held by another property.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_set_serving_domain(configuration: &configuration::Configuration, id: &str, serving_domain_dto: models::ServingDomainDto) -> Result<models::PubServingDomain, Error<PublisherControllerSetServingDomainError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -521,6 +724,17 @@ pub async fn publisher_controller_set_serving_domain(configuration: &configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&serving_domain_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -530,7 +744,7 @@ pub async fn publisher_controller_set_serving_domain(configuration: &configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerSetServingDomainError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -538,7 +752,8 @@ pub async fn publisher_controller_set_serving_domain(configuration: &configurati
     }
 }
 
-pub async fn publisher_controller_tag(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerTagError>> {
+/// Returns the integration snippet for the placement, shaped by format: `script` (SDK `<script>` loader) for web formats, `directUrl` for `direct_link`, `emailSnippet` (tracked image + link with a `{{RECIPIENT}}` merge field) for `email`, and an HTTP `endpoint` for `terminal`. If the property has a verified first-party serving domain the snippet points at it and `firstParty` is true. 404 if not your placement.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_tag(configuration: &configuration::Configuration, id: &str) -> Result<models::PublisherControllerTag200Response, Error<PublisherControllerTagError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -549,6 +764,17 @@ pub async fn publisher_controller_tag(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -557,7 +783,7 @@ pub async fn publisher_controller_tag(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerTagError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -565,7 +791,8 @@ pub async fn publisher_controller_tag(configuration: &configuration::Configurati
     }
 }
 
-pub async fn publisher_controller_update_app(configuration: &configuration::Configuration, id: &str, update_app_dto: models::UpdateAppDto) -> Result<(), Error<PublisherControllerUpdateAppError>> {
+/// Patches only the fields sent: `appAdsTxt` (authorized-seller entries `{domain, sellerId, relationship?, certId?}`, normalized and invalid ones dropped), `skadnetworkIds`, `ctvMeta`, `storeUrl`, `platform`. Republishes the serving index. 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_update_app(configuration: &configuration::Configuration, id: &str, update_app_dto: models::UpdateAppDto) -> Result<models::PubProperty, Error<PublisherControllerUpdateAppError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -576,6 +803,17 @@ pub async fn publisher_controller_update_app(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_app_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -585,7 +823,7 @@ pub async fn publisher_controller_update_app(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerUpdateAppError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -593,7 +831,8 @@ pub async fn publisher_controller_update_app(configuration: &configuration::Conf
     }
 }
 
-pub async fn publisher_controller_update_placement(configuration: &configuration::Configuration, id: &str, update_placement_dto: models::UpdatePlacementDto) -> Result<(), Error<PublisherControllerUpdatePlacementError>> {
+/// Patches `name`, `floorCpm`, `revShare`, `auctionType`, `passbackUrl`, `status` (`active`/`paused`), house/yield flags, and the dynamic-floor settings `floorAuto` (let the yield optimizer manage the floor) and `floorSoft` (soft reserve). Returns the updated row and republishes the serving index. 404 if the placement is not found among your properties.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_update_placement(configuration: &configuration::Configuration, id: &str, update_placement_dto: models::UpdatePlacementDto) -> Result<models::PubPlacement, Error<PublisherControllerUpdatePlacementError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -604,6 +843,17 @@ pub async fn publisher_controller_update_placement(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_placement_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -613,7 +863,7 @@ pub async fn publisher_controller_update_placement(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerUpdatePlacementError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -621,7 +871,8 @@ pub async fn publisher_controller_update_placement(configuration: &configuration
     }
 }
 
-pub async fn publisher_controller_update_property(configuration: &configuration::Configuration, id: &str, update_property_dto: models::UpdatePropertyDto) -> Result<(), Error<PublisherControllerUpdatePropertyError>> {
+/// Patches `name`, `domain`, `category`, `verificationMethod` and `crossFill` (opt in to filling this property with other-network demand). Changing `domain` resets `verification_status` to `unverified`, so the property must be re-verified. Returns the updated row (unchanged row if no fields were sent) and republishes the serving index. 404 if the property does not exist, 403 if another publisher owns it.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_update_property(configuration: &configuration::Configuration, id: &str, update_property_dto: models::UpdatePropertyDto) -> Result<models::PubProperty, Error<PublisherControllerUpdatePropertyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -632,6 +883,17 @@ pub async fn publisher_controller_update_property(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_property_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -641,7 +903,7 @@ pub async fn publisher_controller_update_property(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerUpdatePropertyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -649,7 +911,8 @@ pub async fn publisher_controller_update_property(configuration: &configuration:
     }
 }
 
-pub async fn publisher_controller_verify(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerVerifyError>> {
+/// Checks the property for its verification token using its method: `dns` looks up a TXT record at `adviverse-verify.<domain>`, `file` fetches `http://<domain>/.well-known/adviverse-verify.txt`, `meta` fetches the homepage and looks for the token. On success the property becomes `verified`, a `pending` property is auto-approved, and the serving index is republished so its placements start serving. A failed check is not an error: it returns `verified: false` with the token and method to show the publisher.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_verify(configuration: &configuration::Configuration, id: &str) -> Result<models::PublisherControllerVerify201Response, Error<PublisherControllerVerifyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -660,6 +923,17 @@ pub async fn publisher_controller_verify(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -668,7 +942,7 @@ pub async fn publisher_controller_verify(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerVerifyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -676,7 +950,8 @@ pub async fn publisher_controller_verify(configuration: &configuration::Configur
     }
 }
 
-pub async fn publisher_controller_verify_serving_domain(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PublisherControllerVerifyServingDomainError>> {
+/// Checks that the serving domain CNAMEs to the serving edge (or, for flattened CNAME/ALIAS records, resolves to the same A records). Stores the result and refreshes the edge router config; once verified, generated tags load from `https://<serving_domain>` and the edge will issue TLS for it. 400 if no serving domain is set.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_verify_serving_domain(configuration: &configuration::Configuration, id: &str) -> Result<models::PublisherControllerVerifyServingDomain201Response, Error<PublisherControllerVerifyServingDomainError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -687,6 +962,17 @@ pub async fn publisher_controller_verify_serving_domain(configuration: &configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -695,7 +981,7 @@ pub async fn publisher_controller_verify_serving_domain(configuration: &configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerVerifyServingDomainError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

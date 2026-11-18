@@ -114,7 +114,8 @@ pub enum FinanceControllerUpsertCurrencyError {
 }
 
 
-pub async fn finance_controller_balance(configuration: &configuration::Configuration, ) -> Result<(), Error<FinanceControllerBalanceError>> {
+/// Returns the materialized balance row for the caller's account: available funds, funds held (pending payouts and unmatured earnings) and the account currency. Returns zeros in USD when no ledger activity exists.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn finance_controller_balance(configuration: &configuration::Configuration, ) -> Result<models::FinBalance, Error<FinanceControllerBalanceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -125,6 +126,17 @@ pub async fn finance_controller_balance(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -133,7 +145,7 @@ pub async fn finance_controller_balance(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerBalanceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -141,7 +153,8 @@ pub async fn finance_controller_balance(configuration: &configuration::Configura
     }
 }
 
-pub async fn finance_controller_crypto_webhook(configuration: &configuration::Configuration, hmac: &str) -> Result<(), Error<FinanceControllerCryptoWebhookError>> {
+/// Called by OxaPay. Verifies the `hmac` header (HMAC-SHA512 of the raw body). Payment callbacks (merchant key) credit the deposit when status is 'Paid'; payout callbacks (payout key) settle the held funds as paid on 'Confirmed' or return them on 'Failed'/'Rejected'. Always answers 200 with the plain body 'ok' once verified so OxaPay stops retrying.  Auth: public, no credentials required.
+pub async fn finance_controller_crypto_webhook(configuration: &configuration::Configuration, hmac: &str) -> Result<String, Error<FinanceControllerCryptoWebhookError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -161,7 +174,7 @@ pub async fn finance_controller_crypto_webhook(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerCryptoWebhookError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -169,7 +182,8 @@ pub async fn finance_controller_crypto_webhook(configuration: &configuration::Co
     }
 }
 
-pub async fn finance_controller_currencies(configuration: &configuration::Configuration, ) -> Result<(), Error<FinanceControllerCurrenciesError>> {
+/// Returns every row of currency_rates (fiat codes and tenant-registered tokens) with its USD rate in micro-USD, optional live price feed and last update, ordered by most recently updated.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn finance_controller_currencies(configuration: &configuration::Configuration, ) -> Result<Vec<models::FinCurrencyRate>, Error<FinanceControllerCurrenciesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -180,6 +194,17 @@ pub async fn finance_controller_currencies(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -188,7 +213,7 @@ pub async fn finance_controller_currencies(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerCurrenciesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -196,7 +221,8 @@ pub async fn finance_controller_currencies(configuration: &configuration::Config
     }
 }
 
-pub async fn finance_controller_deposit(configuration: &configuration::Configuration, deposit_dto: models::DepositDto) -> Result<(), Error<FinanceControllerDepositError>> {
+/// Creates a pending deposit for `amount` (0.01..1,000,000, 2 dp) through `provider`: stripe (default) / card, paypal, crypto, wire, paxum, or mock (refused in production). The deposit is denominated in the account's currency; tokens not at USD par are charged to the provider in USD. Hosted-checkout providers return a redirectUrl and are credited later by webhook; wire/paxum return transfer instructions and are credited when ops confirm receipt; mock completes immediately. An unconfigured provider is refused.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn finance_controller_deposit(configuration: &configuration::Configuration, deposit_dto: models::DepositDto) -> Result<models::FinDepositResult, Error<FinanceControllerDepositError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -207,6 +233,17 @@ pub async fn finance_controller_deposit(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&deposit_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -216,7 +253,7 @@ pub async fn finance_controller_deposit(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerDepositError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -224,7 +261,8 @@ pub async fn finance_controller_deposit(configuration: &configuration::Configura
     }
 }
 
-pub async fn finance_controller_deposits(configuration: &configuration::Configuration, ) -> Result<(), Error<FinanceControllerDepositsError>> {
+/// Returns the caller's 100 most recent deposits (all statuses), newest first.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn finance_controller_deposits(configuration: &configuration::Configuration, ) -> Result<Vec<models::FinDeposit>, Error<FinanceControllerDepositsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -235,6 +273,17 @@ pub async fn finance_controller_deposits(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -243,7 +292,7 @@ pub async fn finance_controller_deposits(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerDepositsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -251,7 +300,8 @@ pub async fn finance_controller_deposits(configuration: &configuration::Configur
     }
 }
 
-pub async fn finance_controller_history(configuration: &configuration::Configuration, ) -> Result<(), Error<FinanceControllerHistoryError>> {
+/// Returns the caller's 100 most recent ledger entries, newest first. Every money movement is one immutable, signed entry with a running balance_after and a unique idempotency key.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn finance_controller_history(configuration: &configuration::Configuration, ) -> Result<Vec<models::FinLedgerEntry>, Error<FinanceControllerHistoryError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -262,6 +312,17 @@ pub async fn finance_controller_history(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -270,7 +331,7 @@ pub async fn finance_controller_history(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerHistoryError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -278,7 +339,8 @@ pub async fn finance_controller_history(configuration: &configuration::Configura
     }
 }
 
-pub async fn finance_controller_methods(configuration: &configuration::Configuration, ) -> Result<(), Error<FinanceControllerMethodsError>> {
+/// Returns the payment rails usable in this environment, derived from configured provider credentials. Deposit rails can include card, crypto, paypal, wire, paxum (and mock outside production); payout rails crypto, paxum and wire (wire payout is always offered as a manual bank transfer).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn finance_controller_methods(configuration: &configuration::Configuration, ) -> Result<models::FinanceControllerMethods200Response, Error<FinanceControllerMethodsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -289,6 +351,17 @@ pub async fn finance_controller_methods(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -297,7 +370,7 @@ pub async fn finance_controller_methods(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerMethodsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -305,7 +378,8 @@ pub async fn finance_controller_methods(configuration: &configuration::Configura
     }
 }
 
-pub async fn finance_controller_payout(configuration: &configuration::Configuration, payout_dto: models::PayoutDto) -> Result<(), Error<FinanceControllerPayoutError>> {
+/// Requests a withdrawal of `amount` via `method` (crypto, paxum or wire) to `destination` (method-specific object). Enforces the minimum payout and, when configured, a tax form on file. Inside one transaction the balance row is locked, available funds are re-checked (400 'insufficient available balance'), and the amount is moved from available to held. Dispatch to the provider happens later; the payout starts in status 'requested'.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn finance_controller_payout(configuration: &configuration::Configuration, payout_dto: models::PayoutDto) -> Result<models::FinanceControllerPayout201Response, Error<FinanceControllerPayoutError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -316,6 +390,17 @@ pub async fn finance_controller_payout(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&payout_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -325,7 +410,7 @@ pub async fn finance_controller_payout(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerPayoutError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -333,7 +418,8 @@ pub async fn finance_controller_payout(configuration: &configuration::Configurat
     }
 }
 
-pub async fn finance_controller_payouts(configuration: &configuration::Configuration, ) -> Result<(), Error<FinanceControllerPayoutsError>> {
+/// Returns the publisher's 100 most recent payout requests, newest first, with status, method, destination and provider reference.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn finance_controller_payouts(configuration: &configuration::Configuration, ) -> Result<Vec<models::FinPayout>, Error<FinanceControllerPayoutsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -344,6 +430,17 @@ pub async fn finance_controller_payouts(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -352,7 +449,7 @@ pub async fn finance_controller_payouts(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerPayoutsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -360,7 +457,8 @@ pub async fn finance_controller_payouts(configuration: &configuration::Configura
     }
 }
 
-pub async fn finance_controller_paypal_webhook(configuration: &configuration::Configuration, paypal_transmission_id: &str, paypal_transmission_time: &str, paypal_cert_url: &str, paypal_auth_algo: &str, paypal_transmission_sig: &str) -> Result<(), Error<FinanceControllerPaypalWebhookError>> {
+/// Called by PayPal. Verifies the PayPal-Transmission-* headers via PayPal's verify-webhook-signature API before any crediting (400 if unverifiable or PayPal is not configured). CHECKOUT.ORDER.APPROVED captures the order and credits the matching deposit; PAYMENT.CAPTURE.COMPLETED credits directly. Crediting is idempotent; other events are ignored.  Auth: public, no credentials required.
+pub async fn finance_controller_paypal_webhook(configuration: &configuration::Configuration, paypal_transmission_id: &str, paypal_transmission_time: &str, paypal_cert_url: &str, paypal_auth_algo: &str, paypal_transmission_sig: &str) -> Result<models::FinanceControllerPaypalWebhook201Response, Error<FinanceControllerPaypalWebhookError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -384,7 +482,7 @@ pub async fn finance_controller_paypal_webhook(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerPaypalWebhookError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -392,7 +490,8 @@ pub async fn finance_controller_paypal_webhook(configuration: &configuration::Co
     }
 }
 
-pub async fn finance_controller_stripe_webhook(configuration: &configuration::Configuration, stripe_signature: &str) -> Result<(), Error<FinanceControllerStripeWebhookError>> {
+/// Called by Stripe, not by API clients. Verifies the `stripe-signature` header against the raw body (400 on failure or if Stripe is not configured). On checkout.session.completed (paid) or payment_intent.succeeded it resolves the deposit from metadata or provider_ref and credits it to the ledger idempotently; other event types are acknowledged and ignored.  Auth: public, no credentials required.
+pub async fn finance_controller_stripe_webhook(configuration: &configuration::Configuration, stripe_signature: &str) -> Result<models::FinanceControllerStripeWebhook201Response, Error<FinanceControllerStripeWebhookError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -412,7 +511,7 @@ pub async fn finance_controller_stripe_webhook(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerStripeWebhookError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -420,7 +519,8 @@ pub async fn finance_controller_stripe_webhook(configuration: &configuration::Co
     }
 }
 
-pub async fn finance_controller_submit_tax_form(configuration: &configuration::Configuration, tax_form_dto: models::TaxFormDto) -> Result<(), Error<FinanceControllerSubmitTaxFormError>> {
+/// Upserts the publisher's tax form. Body: `formType` (w9|w8ben), `legalName`, optional `taxClassification`, `taxId` (SSN/EIN/TIN, encrypted at rest; only the last 4 digits are kept in clear), `address`, 2-letter `country` and `certified` (must be true). Status resets to 'submitted'. Returns the masked view.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn finance_controller_submit_tax_form(configuration: &configuration::Configuration, tax_form_dto: models::TaxFormDto) -> Result<models::FinTaxForm, Error<FinanceControllerSubmitTaxFormError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -431,6 +531,17 @@ pub async fn finance_controller_submit_tax_form(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&tax_form_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -440,7 +551,7 @@ pub async fn finance_controller_submit_tax_form(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerSubmitTaxFormError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -448,7 +559,8 @@ pub async fn finance_controller_submit_tax_form(configuration: &configuration::C
     }
 }
 
-pub async fn finance_controller_tax_form(configuration: &configuration::Configuration, ) -> Result<(), Error<FinanceControllerTaxFormError>> {
+/// Returns the publisher's W-9 / W-8BEN on file with the tax id masked to its last 4 digits, or `{ onFile: false }` if none has been submitted.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn finance_controller_tax_form(configuration: &configuration::Configuration, ) -> Result<models::FinTaxForm, Error<FinanceControllerTaxFormError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -459,6 +571,17 @@ pub async fn finance_controller_tax_form(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -467,7 +590,7 @@ pub async fn finance_controller_tax_form(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerTaxFormError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -475,7 +598,8 @@ pub async fn finance_controller_tax_form(configuration: &configuration::Configur
     }
 }
 
-pub async fn finance_controller_upsert_currency(configuration: &configuration::Configuration, currency_dto: models::CurrencyDto) -> Result<(), Error<FinanceControllerUpsertCurrencyError>> {
+/// Creates or updates a currency code (2-12 uppercase alphanumerics) owned by the caller. Body: `code`, `name`, and either `usdMicro` (micro-USD per unit) or `rateUrl` (a price API polled to keep the rate current, SSRF-guarded) with optional `rateJsonPath` (dot-path to the price). When rateUrl is given it is fetched once to seed the rate. Fails with 400 if the code belongs to another account or no positive rate can be determined.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn finance_controller_upsert_currency(configuration: &configuration::Configuration, currency_dto: models::CurrencyDto) -> Result<models::FinCurrencyRate, Error<FinanceControllerUpsertCurrencyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -486,6 +610,17 @@ pub async fn finance_controller_upsert_currency(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&currency_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -495,7 +630,7 @@ pub async fn finance_controller_upsert_currency(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<FinanceControllerUpsertCurrencyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

@@ -37,6 +37,8 @@ pub struct UpdatePlacementDto {
     pub floor_auto: Option<bool>,
     #[serde(rename = "floorSoft", skip_serializing_if = "Option::is_none")]
     pub floor_soft: Option<f64>,
+    #[serde(rename = "autoAds", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub auto_ads: Option<Option<serde_json::Value>>,
 }
 
 impl UpdatePlacementDto {
@@ -54,6 +56,7 @@ impl UpdatePlacementDto {
             floor_fallback: None,
             floor_auto: None,
             floor_soft: None,
+            auto_ads: None,
         }
     }
 }

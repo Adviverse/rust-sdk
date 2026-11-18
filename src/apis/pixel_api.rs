@@ -142,7 +142,8 @@ pub enum PixelControllerUpdateSettingsError {
 }
 
 
-pub async fn pixel_controller_attribution(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<(), Error<PixelControllerAttributionError>> {
+/// Breaks the funnel down by last-touch source (UTM source, else the referring host, else \"direct\"), medium and campaign over the last `days` (default 30, max 180): visitors, checkouts, purchases, abandoned checkouts, lost deals, revenue and lost value. Also returns account totals, lost-deal reasons and a first-touch source breakdown. Self-referrals are folded into \"direct\".  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_attribution(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<models::PixelControllerAttribution200Response, Error<PixelControllerAttributionError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -155,6 +156,17 @@ pub async fn pixel_controller_attribution(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -163,7 +175,7 @@ pub async fn pixel_controller_attribution(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerAttributionError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -171,7 +183,8 @@ pub async fn pixel_controller_attribution(configuration: &configuration::Configu
     }
 }
 
-pub async fn pixel_controller_cli_link_code(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerCliLinkCodeError>> {
+/// Creates a single-use code, valid for 10 minutes, that a terminal client exchanges at /v1/track/link for the SHA-256 hash of the account email. This links CLI ad requests to the account identity without the raw email ever leaving the server. Returns 404 if the account has no email.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn pixel_controller_cli_link_code(configuration: &configuration::Configuration, ) -> Result<models::PixelControllerCliLinkCode201Response, Error<PixelControllerCliLinkCodeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -182,6 +195,17 @@ pub async fn pixel_controller_cli_link_code(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -190,7 +214,7 @@ pub async fn pixel_controller_cli_link_code(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerCliLinkCodeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -198,7 +222,8 @@ pub async fn pixel_controller_cli_link_code(configuration: &configuration::Confi
     }
 }
 
-pub async fn pixel_controller_cli_link_exchange(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerCliLinkExchangeError>> {
+/// Public. Trades the `code` issued by /v1/advertiser/cli-link-code for the account's email hash (`em`), which the CLI then sends on ad requests. Codes are single-use and deleted on exchange; unknown or expired codes return `{ok:false}`.  Auth: public, no credentials required.
+pub async fn pixel_controller_cli_link_exchange(configuration: &configuration::Configuration, ) -> Result<models::PixelControllerCliLinkExchange201Response, Error<PixelControllerCliLinkExchangeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -217,7 +242,7 @@ pub async fn pixel_controller_cli_link_exchange(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerCliLinkExchangeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -225,7 +250,8 @@ pub async fn pixel_controller_cli_link_exchange(configuration: &configuration::C
     }
 }
 
-pub async fn pixel_controller_create_pixel(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerCreatePixelError>> {
+/// Creates an additional pixel under the account (agencies typically run one per client). Optional body field `name` (trimmed, max 80 chars, defaults to \"Default pixel\"). Returns the new pixel with its install snippet.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_create_pixel(configuration: &configuration::Configuration, ) -> Result<models::AudiencePixel, Error<PixelControllerCreatePixelError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -236,6 +262,17 @@ pub async fn pixel_controller_create_pixel(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -244,7 +281,7 @@ pub async fn pixel_controller_create_pixel(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerCreatePixelError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -252,7 +289,8 @@ pub async fn pixel_controller_create_pixel(configuration: &configuration::Config
     }
 }
 
-pub async fn pixel_controller_delete_pixel(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PixelControllerDeletePixelError>> {
+/// Deletes the pixel `id` if it belongs to the account. An account always keeps at least one pixel, so deleting the last one fails with 400. Deleting an id the account does not own is a silent no-op.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_delete_pixel(configuration: &configuration::Configuration, id: &str) -> Result<models::PixelControllerDeletePixel200Response, Error<PixelControllerDeletePixelError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -263,6 +301,17 @@ pub async fn pixel_controller_delete_pixel(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -271,7 +320,7 @@ pub async fn pixel_controller_delete_pixel(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerDeletePixelError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -279,7 +328,8 @@ pub async fn pixel_controller_delete_pixel(configuration: &configuration::Config
     }
 }
 
-pub async fn pixel_controller_events(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<(), Error<PixelControllerEventsError>> {
+/// Aggregates pixel events from ClickHouse over the last `days` (default 30, clamped to 1-180), optionally filtered to `pixelId`. Returns one row per event name with event count, unique users and summed value, ordered by count.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_events(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<Vec<models::PixelControllerEvents200ResponseInner>, Error<PixelControllerEventsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -292,6 +342,17 @@ pub async fn pixel_controller_events(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -300,7 +361,7 @@ pub async fn pixel_controller_events(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerEventsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -308,7 +369,8 @@ pub async fn pixel_controller_events(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn pixel_controller_get_pixel(configuration: &configuration::Configuration, pixel_id: &str) -> Result<(), Error<PixelControllerGetPixelError>> {
+/// Returns the pixel named by the `pixelId` query param, or the account's primary pixel when omitted (created if the account has none). The response includes the pixel.js library URL, the base snippet to paste sitewide and the list of standard event names. Returns 404 when `pixelId` is not owned by the account.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_get_pixel(configuration: &configuration::Configuration, pixel_id: &str) -> Result<models::AudiencePixel, Error<PixelControllerGetPixelError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -320,6 +382,17 @@ pub async fn pixel_controller_get_pixel(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -328,7 +401,7 @@ pub async fn pixel_controller_get_pixel(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerGetPixelError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -336,7 +409,8 @@ pub async fn pixel_controller_get_pixel(configuration: &configuration::Configura
     }
 }
 
-pub async fn pixel_controller_insights(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<(), Error<PixelControllerInsightsError>> {
+/// Builds the Pixel dashboard view over the last `days` (default 30, max 180), optionally scoped to `pixelId`: unique users per funnel stage, a summary of events, attributed conversions, revenue, ad spend and ROAS, and a daily events/conversions/revenue series. ROAS is 0 when there is no spend.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_insights(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<models::PixelControllerInsights200Response, Error<PixelControllerInsightsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -349,6 +423,17 @@ pub async fn pixel_controller_insights(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -357,7 +442,7 @@ pub async fn pixel_controller_insights(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerInsightsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -365,6 +450,7 @@ pub async fn pixel_controller_insights(configuration: &configuration::Configurat
     }
 }
 
+/// Returns the pixel.js library that the base snippet loads asynchronously; it drains the `adq(...)` command queue and posts events to /v1/track/event. Served as JavaScript with a one-hour public cache.  Auth: public, no credentials required.
 pub async fn pixel_controller_library(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerLibraryError>> {
     let local_var_configuration = configuration;
 
@@ -392,7 +478,8 @@ pub async fn pixel_controller_library(configuration: &configuration::Configurati
     }
 }
 
-pub async fn pixel_controller_list_pixels(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerListPixelsError>> {
+/// Returns every pixel owned by the account, oldest first so the primary pixel stays on top. If the account has no pixel yet, a default one is created and returned. Team members scoped to specific pixels only see the pixels assigned to them.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_list_pixels(configuration: &configuration::Configuration, ) -> Result<Vec<models::AudiencePixel>, Error<PixelControllerListPixelsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -403,6 +490,17 @@ pub async fn pixel_controller_list_pixels(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -411,7 +509,7 @@ pub async fn pixel_controller_list_pixels(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerListPixelsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -419,7 +517,8 @@ pub async fn pixel_controller_list_pixels(configuration: &configuration::Configu
     }
 }
 
-pub async fn pixel_controller_products(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<(), Error<PixelControllerProductsError>> {
+/// Explodes the `content_ids` carried on pixel events and returns, per product id, unique users who viewed, added to cart, purchased or were lost, plus purchase revenue and lost value. Window is the last `days` (default 30, max 180), optional `pixelId` filter, limited to 200 products.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_products(configuration: &configuration::Configuration, days: &str, pixel_id: &str) -> Result<Vec<models::PixelControllerProducts200ResponseInner>, Error<PixelControllerProductsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -432,6 +531,17 @@ pub async fn pixel_controller_products(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -440,7 +550,7 @@ pub async fn pixel_controller_products(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerProductsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -448,7 +558,8 @@ pub async fn pixel_controller_products(configuration: &configuration::Configurat
     }
 }
 
-pub async fn pixel_controller_set_realtime(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerSetRealtimeError>> {
+/// Turns real-time, action-based audience membership on or off (`enabled`) for `pixelId` (or the primary pixel). When on, each consented event and trait update is evaluated against the account's rule audiences by a background worker right after ingestion. Returns 404 for a pixel the account does not own.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_set_realtime(configuration: &configuration::Configuration, ) -> Result<models::PixelControllerSetRealtime201Response, Error<PixelControllerSetRealtimeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -459,6 +570,17 @@ pub async fn pixel_controller_set_realtime(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -467,7 +589,7 @@ pub async fn pixel_controller_set_realtime(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerSetRealtimeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -475,7 +597,8 @@ pub async fn pixel_controller_set_realtime(configuration: &configuration::Config
     }
 }
 
-pub async fn pixel_controller_track(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerTrackError>> {
+/// Called by pixel.js. Body carries `pixelId`, `event` (default PageView), optional `eventId` (deduplicated per account for 7 days), `url`, `referrer`, `params` (value, currency, content_ids, order_id...), UTM touch data, hashed `am` identifiers and consent flags. Events from hosts outside the pixel's allowed domains are rejected; without consent (GPC or consent:false) the event is stored for aggregate analytics only, with no identity linkage. Conversion events carrying an `adclid` are attributed to the clicked ad. Never throws: failures return `{status:\"error\"}` and the request sets the first-party uid cookie.  Auth: public, no credentials required.
+pub async fn pixel_controller_track(configuration: &configuration::Configuration, ) -> Result<models::PixelControllerTrack201Response, Error<PixelControllerTrackError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -494,7 +617,7 @@ pub async fn pixel_controller_track(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerTrackError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -502,7 +625,8 @@ pub async fn pixel_controller_track(configuration: &configuration::Configuration
     }
 }
 
-pub async fn pixel_controller_track_coding(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerTrackCodingError>> {
+/// Public beacon for CLI/IDE clients. Body: `kw` (up to 20 keywords), `client`, and `em` (a SHA-256 email hash) or `uid`. Keywords are logged under a reserved network account keyed to the same email-derived canonical id the ad engine targets, so they feed developer interest segments. A valid `em` also writes the cross-surface identity link. Returns `skipped` when there are no keywords; never throws.  Auth: public, no credentials required.
+pub async fn pixel_controller_track_coding(configuration: &configuration::Configuration, ) -> Result<models::PixelControllerTrackCoding201Response, Error<PixelControllerTrackCodingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -521,7 +645,7 @@ pub async fn pixel_controller_track_coding(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerTrackCodingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -529,6 +653,7 @@ pub async fn pixel_controller_track_coding(configuration: &configuration::Config
     }
 }
 
+/// The noscript / image fallback for /v1/track/event. Query params `pixel_id`, `event`, `event_id`, `url` and `adclid` are read, and the full query string is stored as event params. Always responds with a 1x1 transparent GIF, even on failure.  Auth: public, no credentials required.
 pub async fn pixel_controller_track_get(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerTrackGetError>> {
     let local_var_configuration = configuration;
 
@@ -556,7 +681,8 @@ pub async fn pixel_controller_track_get(configuration: &configuration::Configura
     }
 }
 
-pub async fn pixel_controller_trait(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerTraitError>> {
+/// Stores CDP profile traits (`traits` object) for the caller's uid, resolved to a canonical id using optional hashed `am` identifiers. Traits require consent, so GPC or consent:false skips the write. When the pixel has real-time audiences enabled, trait-based rule audiences are re-evaluated. Fail-soft: errors (including an unknown pixel) return `{status:\"error\"}`.  Auth: public, no credentials required.
+pub async fn pixel_controller_trait(configuration: &configuration::Configuration, ) -> Result<models::PixelControllerTrait201Response, Error<PixelControllerTraitError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -575,7 +701,7 @@ pub async fn pixel_controller_trait(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerTraitError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -583,7 +709,8 @@ pub async fn pixel_controller_trait(configuration: &configuration::Configuration
     }
 }
 
-pub async fn pixel_controller_trait_lookup(configuration: &configuration::Configuration, user: &str, pixel_id: &str) -> Result<(), Error<PixelControllerTraitLookupError>> {
+/// Resolves the `user` query value (a canonical `id_...`, a cookie uid, a SHA-256 email/phone hash, or a raw email which is hashed server-side) to a canonical id through the identity map and returns its stored traits. With `pixelId`, only traits set by that pixel are shown. Unknown identifiers return an empty canonical and no traits rather than an error.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_trait_lookup(configuration: &configuration::Configuration, user: &str, pixel_id: &str) -> Result<models::PixelControllerTraitLookup200Response, Error<PixelControllerTraitLookupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -596,6 +723,17 @@ pub async fn pixel_controller_trait_lookup(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -604,7 +742,7 @@ pub async fn pixel_controller_trait_lookup(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerTraitLookupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -612,7 +750,8 @@ pub async fn pixel_controller_trait_lookup(configuration: &configuration::Config
     }
 }
 
-pub async fn pixel_controller_update_settings(configuration: &configuration::Configuration, ) -> Result<(), Error<PixelControllerUpdateSettingsError>> {
+/// Patches `name` (max 80 chars), `defaultConsent` (whether events without an explicit consent signal are treated as consented) and `allowedDomains` for `pixelId` (or the primary pixel). Domains are normalized to bare lowercase hosts, deduplicated and capped at 50; once set, events fired from other hosts are rejected. Omitted fields are left unchanged; returns the updated pixel, or 404 if not owned.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn pixel_controller_update_settings(configuration: &configuration::Configuration, ) -> Result<models::AudiencePixel, Error<PixelControllerUpdateSettingsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -623,6 +762,17 @@ pub async fn pixel_controller_update_settings(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -631,7 +781,7 @@ pub async fn pixel_controller_update_settings(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PixelControllerUpdateSettingsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

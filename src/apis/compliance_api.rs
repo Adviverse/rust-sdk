@@ -100,7 +100,8 @@ pub enum ComplianceControllerSellersError {
 }
 
 
-pub async fn compliance_controller_ads_txt(configuration: &configuration::Configuration, ) -> Result<(), Error<ComplianceControllerAdsTxtError>> {
+/// Public. Returns the single ads.txt line (`<domain>, <seller id>, DIRECT`) publishers add to their own ads.txt to authorize Adviverse to sell their inventory.  Auth: public, no credentials required.
+pub async fn compliance_controller_ads_txt(configuration: &configuration::Configuration, ) -> Result<String, Error<ComplianceControllerAdsTxtError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -119,7 +120,7 @@ pub async fn compliance_controller_ads_txt(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerAdsTxtError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -127,7 +128,8 @@ pub async fn compliance_controller_ads_txt(configuration: &configuration::Config
     }
 }
 
-pub async fn compliance_controller_complete(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<ComplianceControllerCompleteError>> {
+/// Marks a DSAR completed. For delete requests it also deletes consent-log rows matching the subject hash. Returns `{ ok: false }` for an unknown id.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn compliance_controller_complete(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<ComplianceControllerCompleteError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -138,6 +140,17 @@ pub async fn compliance_controller_complete(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -146,7 +159,7 @@ pub async fn compliance_controller_complete(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerCompleteError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -154,7 +167,8 @@ pub async fn compliance_controller_complete(configuration: &configuration::Confi
     }
 }
 
-pub async fn compliance_controller_consent(configuration: &configuration::Configuration, consent_dto: models::ConsentDto) -> Result<(), Error<ComplianceControllerConsentError>> {
+/// Public, rate-limited; called by the SDK/CMP bridge. Stores a consent record with a SHA-256 hash of `userId`, plus optional `tcf`, `gpp`, `gpc`, `purposes` and `mode`. `publisherId` and `propertyId` attribute the record and are kept only when they are well-formed UUIDs.  Auth: public, no credentials required.
+pub async fn compliance_controller_consent(configuration: &configuration::Configuration, consent_dto: models::ConsentDto) -> Result<models::ComplianceControllerConsent201Response, Error<ComplianceControllerConsentError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -174,7 +188,7 @@ pub async fn compliance_controller_consent(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerConsentError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -182,7 +196,8 @@ pub async fn compliance_controller_consent(configuration: &configuration::Config
     }
 }
 
-pub async fn compliance_controller_consent_log(configuration: &configuration::Configuration, ) -> Result<(), Error<ComplianceControllerConsentLogError>> {
+/// Returns the 100 most recent consent-log entries forwarded by this publisher's snippet.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn compliance_controller_consent_log(configuration: &configuration::Configuration, ) -> Result<Vec<models::ComplianceControllerConsentLog200ResponseInner>, Error<ComplianceControllerConsentLogError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -193,6 +208,17 @@ pub async fn compliance_controller_consent_log(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -201,7 +227,7 @@ pub async fn compliance_controller_consent_log(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerConsentLogError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -209,6 +235,7 @@ pub async fn compliance_controller_consent_log(configuration: &configuration::Co
     }
 }
 
+/// Public. Serves the DomainConnect template for publisher domain verification at the standard service-provider path. The template applies one TXT record at the verification host carrying the `%txt%` token. Any other provider/service id returns 404.  Auth: public, no credentials required.
 pub async fn compliance_controller_domain_connect_template(configuration: &configuration::Configuration, provider_id: &str, service_id: &str) -> Result<(), Error<ComplianceControllerDomainConnectTemplateError>> {
     let local_var_configuration = configuration;
 
@@ -236,7 +263,8 @@ pub async fn compliance_controller_domain_connect_template(configuration: &confi
     }
 }
 
-pub async fn compliance_controller_dsar(configuration: &configuration::Configuration, dsar_dto: models::DsarDto) -> Result<(), Error<ComplianceControllerDsarError>> {
+/// Public, rate-limited. Files an `access` or `delete` request for `email`; only a hash of the subject is stored. A delete request starts erasing the subject from identity maps, CDP traits, segment memberships and event history and suppresses re-collection (fail-soft, in the background). An access request returns the stored request plus an `export` of the data held on the subject.  Auth: public, no credentials required.
+pub async fn compliance_controller_dsar(configuration: &configuration::Configuration, dsar_dto: models::DsarDto) -> Result<models::ComplianceDsar, Error<ComplianceControllerDsarError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -256,7 +284,7 @@ pub async fn compliance_controller_dsar(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerDsarError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -264,7 +292,8 @@ pub async fn compliance_controller_dsar(configuration: &configuration::Configura
     }
 }
 
-pub async fn compliance_controller_get_consent_config(configuration: &configuration::Configuration, property_id: &str) -> Result<(), Error<ComplianceControllerGetConsentConfigError>> {
+/// Returns the consent config for `propertyId`, falling back to the account-wide default and then to built-in defaults (TCF v2, no default consent, all collection on). Without `propertyId` the account default is returned. The property must belong to the caller (400).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn compliance_controller_get_consent_config(configuration: &configuration::Configuration, property_id: &str) -> Result<models::ComplianceConsentConfig, Error<ComplianceControllerGetConsentConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -276,6 +305,17 @@ pub async fn compliance_controller_get_consent_config(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -284,7 +324,7 @@ pub async fn compliance_controller_get_consent_config(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerGetConsentConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -292,7 +332,8 @@ pub async fn compliance_controller_get_consent_config(configuration: &configurat
     }
 }
 
-pub async fn compliance_controller_get_seller_listing(configuration: &configuration::Configuration, ) -> Result<(), Error<ComplianceControllerGetSellerListingError>> {
+/// Returns whether the publisher is listed publicly in sellers.json and its declared seller domain. Defaults to confidential.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn compliance_controller_get_seller_listing(configuration: &configuration::Configuration, ) -> Result<models::ComplianceSellerListing, Error<ComplianceControllerGetSellerListingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -303,6 +344,17 @@ pub async fn compliance_controller_get_seller_listing(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -311,7 +363,7 @@ pub async fn compliance_controller_get_seller_listing(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerGetSellerListingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -319,7 +371,8 @@ pub async fn compliance_controller_get_seller_listing(configuration: &configurat
     }
 }
 
-pub async fn compliance_controller_list_dsar(configuration: &configuration::Configuration, ) -> Result<(), Error<ComplianceControllerListDsarError>> {
+/// Returns the 200 most recent DSAR requests, newest first.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn compliance_controller_list_dsar(configuration: &configuration::Configuration, ) -> Result<Vec<models::ComplianceDsar>, Error<ComplianceControllerListDsarError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -330,6 +383,17 @@ pub async fn compliance_controller_list_dsar(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -338,7 +402,7 @@ pub async fn compliance_controller_list_dsar(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerListDsarError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -346,7 +410,8 @@ pub async fn compliance_controller_list_dsar(configuration: &configuration::Conf
     }
 }
 
-pub async fn compliance_controller_save_consent_config(configuration: &configuration::Configuration, consent_config_dto: models::ConsentConfigDto) -> Result<(), Error<ComplianceControllerSaveConsentConfigError>> {
+/// Upserts the consent config for `propertyId`, or the account default when omitted. Requires `mode` (`tcf_v2`, `gpp`, `custom`) and `defaultConsent`; snippet controls default to true. For a custom CMP, `consentSource` `cookie` or `global` requires `consentKey` (cookie name or JS global path), and `consentGrantValue` defaults to `true`. `tcfPurpose` (1-11, default 1) and `tcfVendorId` are range-checked. Invalid mode, source or key returns 400.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn compliance_controller_save_consent_config(configuration: &configuration::Configuration, consent_config_dto: models::ConsentConfigDto) -> Result<models::ComplianceConsentConfig, Error<ComplianceControllerSaveConsentConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -357,6 +422,17 @@ pub async fn compliance_controller_save_consent_config(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&consent_config_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -366,7 +442,7 @@ pub async fn compliance_controller_save_consent_config(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerSaveConsentConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -374,7 +450,8 @@ pub async fn compliance_controller_save_consent_config(configuration: &configura
     }
 }
 
-pub async fn compliance_controller_save_seller_listing(configuration: &configuration::Configuration, seller_listing_dto: models::SellerListingDto) -> Result<(), Error<ComplianceControllerSaveSellerListingError>> {
+/// Sets `sellerPublic` and an optional `sellerDomain`. The domain is normalized (scheme, path and `www.` stripped, lowercased) and must be a valid hostname (400 otherwise). A public listing exposes the company name and domain in sellers.json.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn compliance_controller_save_seller_listing(configuration: &configuration::Configuration, seller_listing_dto: models::SellerListingDto) -> Result<models::ComplianceSellerListing, Error<ComplianceControllerSaveSellerListingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -385,6 +462,17 @@ pub async fn compliance_controller_save_seller_listing(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&seller_listing_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -394,7 +482,7 @@ pub async fn compliance_controller_save_seller_listing(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerSaveSellerListingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -402,7 +490,8 @@ pub async fn compliance_controller_save_seller_listing(configuration: &configura
     }
 }
 
-pub async fn compliance_controller_sellers(configuration: &configuration::Configuration, ) -> Result<(), Error<ComplianceControllerSellersError>> {
+/// Public IAB sellers.json listing active publisher accounts as PUBLISHER sellers. Advertisers are not listed. Sellers are confidential (`is_confidential: 1`, no name/domain) unless the publisher opted into a public listing, which exposes their company name and seller domain.  Auth: public, no credentials required.
+pub async fn compliance_controller_sellers(configuration: &configuration::Configuration, ) -> Result<models::ComplianceControllerSellers200Response, Error<ComplianceControllerSellersError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -421,7 +510,7 @@ pub async fn compliance_controller_sellers(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComplianceControllerSellersError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

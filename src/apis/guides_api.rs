@@ -79,7 +79,8 @@ pub enum GuidesControllerUpdateError {
 }
 
 
-pub async fn guides_controller_admin_list(configuration: &configuration::Configuration, locale: &str) -> Result<(), Error<GuidesControllerAdminListError>> {
+/// Returns every guide, including unpublished ones, optionally filtered by `locale`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn guides_controller_admin_list(configuration: &configuration::Configuration, locale: &str) -> Result<Vec<models::Guide>, Error<GuidesControllerAdminListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -91,6 +92,17 @@ pub async fn guides_controller_admin_list(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -99,7 +111,7 @@ pub async fn guides_controller_admin_list(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerAdminListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -107,7 +119,8 @@ pub async fn guides_controller_admin_list(configuration: &configuration::Configu
     }
 }
 
-pub async fn guides_controller_create(configuration: &configuration::Configuration, create_guide_dto: models::CreateGuideDto) -> Result<(), Error<GuidesControllerCreateError>> {
+/// Creates a guide from `slug` and `title` with optional `locale` (`en`), `category` (`Guides`), `summary`, Markdown `body`, `position` (0) and `published` (true). An existing guide with the same slug and locale is overwritten (upsert). Clears the public read cache.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn guides_controller_create(configuration: &configuration::Configuration, create_guide_dto: models::CreateGuideDto) -> Result<models::Guide, Error<GuidesControllerCreateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -118,6 +131,17 @@ pub async fn guides_controller_create(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_guide_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -127,7 +151,7 @@ pub async fn guides_controller_create(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerCreateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -135,7 +159,8 @@ pub async fn guides_controller_create(configuration: &configuration::Configurati
     }
 }
 
-pub async fn guides_controller_get(configuration: &configuration::Configuration, slug: &str, locale: &str) -> Result<(), Error<GuidesControllerGetError>> {
+/// Public. Returns a published guide by `slug` and `locale` (default `en`). An unknown or unpublished slug returns HTTP 200 with `{ error: \"not_found\" }`, not 404.  Auth: public, no credentials required.
+pub async fn guides_controller_get(configuration: &configuration::Configuration, slug: &str, locale: &str) -> Result<models::GuidesControllerGet200Response, Error<GuidesControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -155,7 +180,7 @@ pub async fn guides_controller_get(configuration: &configuration::Configuration,
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -163,7 +188,8 @@ pub async fn guides_controller_get(configuration: &configuration::Configuration,
     }
 }
 
-pub async fn guides_controller_index_html(configuration: &configuration::Configuration, ) -> Result<(), Error<GuidesControllerIndexHtmlError>> {
+/// Public, server-rendered HTML for /guides: a card per published English guide plus category navigation. Cached (max-age 300, s-maxage 3600) for search engines.  Auth: public, no credentials required.
+pub async fn guides_controller_index_html(configuration: &configuration::Configuration, ) -> Result<String, Error<GuidesControllerIndexHtmlError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -182,7 +208,7 @@ pub async fn guides_controller_index_html(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerIndexHtmlError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -190,7 +216,8 @@ pub async fn guides_controller_index_html(configuration: &configuration::Configu
     }
 }
 
-pub async fn guides_controller_list(configuration: &configuration::Configuration, locale: &str, category: &str) -> Result<(), Error<GuidesControllerListError>> {
+/// Public. Returns published guides for `locale` (default `en`), ordered by category, position and title, optionally filtered by `category`. Reads are cached in Redis for 60 seconds. This is the in-app docs feed, separate from the OpenAPI reference at /v1/docs.  Auth: public, no credentials required.
+pub async fn guides_controller_list(configuration: &configuration::Configuration, locale: &str, category: &str) -> Result<Vec<models::Guide>, Error<GuidesControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -211,7 +238,7 @@ pub async fn guides_controller_list(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -219,7 +246,8 @@ pub async fn guides_controller_list(configuration: &configuration::Configuration
     }
 }
 
-pub async fn guides_controller_page_html(configuration: &configuration::Configuration, slug: &str) -> Result<(), Error<GuidesControllerPageHtmlError>> {
+/// Public, server-rendered HTML for one English guide, with its Markdown body rendered escape-first (raw HTML is neutralized), TechArticle JSON-LD and canonical URL. Unknown slugs return a 404 HTML page.  Auth: public, no credentials required.
+pub async fn guides_controller_page_html(configuration: &configuration::Configuration, slug: &str) -> Result<String, Error<GuidesControllerPageHtmlError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -238,7 +266,7 @@ pub async fn guides_controller_page_html(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerPageHtmlError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -246,7 +274,8 @@ pub async fn guides_controller_page_html(configuration: &configuration::Configur
     }
 }
 
-pub async fn guides_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<GuidesControllerRemoveError>> {
+/// Deletes the guide and clears the public cache. Returns `{ ok: true }` even for an unknown id.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn guides_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<GuidesControllerRemoveError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -257,6 +286,17 @@ pub async fn guides_controller_remove(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -265,7 +305,7 @@ pub async fn guides_controller_remove(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerRemoveError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -273,7 +313,8 @@ pub async fn guides_controller_remove(configuration: &configuration::Configurati
     }
 }
 
-pub async fn guides_controller_sitemap(configuration: &configuration::Configuration, ) -> Result<(), Error<GuidesControllerSitemapError>> {
+/// Public XML sitemap listing /guides and every published English guide page.  Auth: public, no credentials required.
+pub async fn guides_controller_sitemap(configuration: &configuration::Configuration, ) -> Result<String, Error<GuidesControllerSitemapError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -292,7 +333,7 @@ pub async fn guides_controller_sitemap(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerSitemapError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -300,7 +341,8 @@ pub async fn guides_controller_sitemap(configuration: &configuration::Configurat
     }
 }
 
-pub async fn guides_controller_update(configuration: &configuration::Configuration, id: &str, update_guide_dto: models::UpdateGuideDto) -> Result<(), Error<GuidesControllerUpdateError>> {
+/// Partially updates any of slug, locale, title, category, summary, body, position and published, and clears the public cache. Returns the updated guide, or null for an unknown id.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn guides_controller_update(configuration: &configuration::Configuration, id: &str, update_guide_dto: models::UpdateGuideDto) -> Result<models::Guide, Error<GuidesControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -311,6 +353,17 @@ pub async fn guides_controller_update(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_guide_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -320,7 +373,7 @@ pub async fn guides_controller_update(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<GuidesControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

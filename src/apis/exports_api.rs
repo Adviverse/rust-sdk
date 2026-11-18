@@ -30,7 +30,8 @@ pub enum ExportsControllerRunError {
 }
 
 
-pub async fn exports_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<ExportsControllerListError>> {
+/// Returns the 200 most recent export jobs, newest first: the caller's own for advertisers, all jobs for admins.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn exports_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::ExportJob>, Error<ExportsControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -41,6 +42,17 @@ pub async fn exports_controller_list(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -49,7 +61,7 @@ pub async fn exports_controller_list(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ExportsControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -57,7 +69,8 @@ pub async fn exports_controller_list(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn exports_controller_run(configuration: &configuration::Configuration, run_export_dto: models::RunExportDto) -> Result<(), Error<ExportsControllerRunError>> {
+/// Pages a ClickHouse dataset into one NDJSON or CSV object plus a manifest JSON in object storage and returns a presigned download URL. Body: `dataset` (events = raw impressions, conversions, or spend = hourly rollup), `from` (inclusive) and `to` (exclusive) as ISO dates, optional `format` (ndjson default, csv). Advertisers export only their own rows; admins export network-wide. The job is recorded and marked failed if the export errors.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn exports_controller_run(configuration: &configuration::Configuration, run_export_dto: models::RunExportDto) -> Result<models::ExportsControllerRun201Response, Error<ExportsControllerRunError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -68,6 +81,17 @@ pub async fn exports_controller_run(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&run_export_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -77,7 +101,7 @@ pub async fn exports_controller_run(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ExportsControllerRunError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

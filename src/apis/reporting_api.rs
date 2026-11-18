@@ -324,7 +324,8 @@ pub enum ReportingControllerViewabilityError {
 }
 
 
-pub async fn promote_campaign_reporting_controller_report(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>) -> Result<(), Error<PromoteCampaignReportingControllerReportError>> {
+/// Returns one row for each of the caller's non-deleted promote (Sponsored Products) campaigns, including those with no traffic yet (zeros). Delivery and spend come from stats_hourly and revenue from attributed conversion_value, scoped to the caller's own promote campaign ids. Sorted by spend then impressions. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn promote_campaign_reporting_controller_report(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>) -> Result<Vec<models::ReportPromoteCampaignRow>, Error<PromoteCampaignReportingControllerReportError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -341,6 +342,17 @@ pub async fn promote_campaign_reporting_controller_report(configuration: &config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -349,7 +361,7 @@ pub async fn promote_campaign_reporting_controller_report(configuration: &config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PromoteCampaignReportingControllerReportError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -357,7 +369,8 @@ pub async fn promote_campaign_reporting_controller_report(configuration: &config
     }
 }
 
-pub async fn promote_campaign_reporting_controller_summary(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>) -> Result<(), Error<PromoteCampaignReportingControllerSummaryError>> {
+/// Rolls up the per-promote-campaign report into one totals object over the same window, with the campaign count and recomputed CTR and ROAS. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn promote_campaign_reporting_controller_summary(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>) -> Result<models::PromoteCampaignReportingControllerSummary200Response, Error<PromoteCampaignReportingControllerSummaryError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -374,6 +387,17 @@ pub async fn promote_campaign_reporting_controller_summary(configuration: &confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -382,7 +406,7 @@ pub async fn promote_campaign_reporting_controller_summary(configuration: &confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PromoteCampaignReportingControllerSummaryError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -390,7 +414,8 @@ pub async fn promote_campaign_reporting_controller_summary(configuration: &confi
     }
 }
 
-pub async fn reporting_controller_advertiser(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerAdvertiserError>> {
+/// Aggregates the caller's advertiser delivery from adnet.stats_hourly, grouped by `dim` (day default, hour, geo, device, format, placement_id, campaign_id), with eCPM, eCPC, eCPA and CTR. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn reporting_controller_advertiser(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportAdvertiserStatsRow>, Error<ReportingControllerAdvertiserError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -401,6 +426,17 @@ pub async fn reporting_controller_advertiser(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -409,7 +445,7 @@ pub async fn reporting_controller_advertiser(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerAdvertiserError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -417,7 +453,8 @@ pub async fn reporting_controller_advertiser(configuration: &configuration::Conf
     }
 }
 
-pub async fn reporting_controller_affiliate(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>, sub: Option<&str>) -> Result<(), Error<ReportingControllerAffiliateError>> {
+/// Per sub-id value funnel (impressions, clicks, conversions) with CTR and CVR in percent, revenue (earnings or spend), CPA payout and conversion value. `sub` picks sub1..sub5 (default sub1). Conversions carry no publisher id, so publishers get impressions/clicks/revenue only. Top 100 by revenue. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_affiliate(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>, sub: Option<&str>) -> Result<Vec<models::ReportingControllerAffiliate200ResponseInner>, Error<ReportingControllerAffiliateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -437,6 +474,17 @@ pub async fn reporting_controller_affiliate(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -445,7 +493,7 @@ pub async fn reporting_controller_affiliate(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerAffiliateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -453,7 +501,8 @@ pub async fn reporting_controller_affiliate(configuration: &configuration::Confi
     }
 }
 
-pub async fn reporting_controller_anti_adblock(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerAntiAdblockError>> {
+/// Reports valid impressions served to visitors the SDK detected as running an adblocker (for example via a first-party serving domain), as a daily series and a window total. recovered_pct is the share of valid impressions that came from adblock users. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn reporting_controller_anti_adblock(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerAntiAdblock200Response, Error<ReportingControllerAntiAdblockError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -464,6 +513,17 @@ pub async fn reporting_controller_anti_adblock(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -472,7 +532,7 @@ pub async fn reporting_controller_anti_adblock(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerAntiAdblockError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -480,7 +540,8 @@ pub async fn reporting_controller_anti_adblock(configuration: &configuration::Co
     }
 }
 
-pub async fn reporting_controller_auction(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerAuctionError>> {
+/// Request count, filled count and fill rate from adnet.ad_requests plus the top 10 no-fill reasons. Publishers see their own inventory; ad_requests has no advertiser column, so other accounts see network-wide auction health. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_auction(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerAuction200Response, Error<ReportingControllerAuctionError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -491,6 +552,17 @@ pub async fn reporting_controller_auction(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -499,7 +571,7 @@ pub async fn reporting_controller_auction(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerAuctionError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -507,7 +579,8 @@ pub async fn reporting_controller_auction(configuration: &configuration::Configu
     }
 }
 
-pub async fn reporting_controller_benchmark(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerBenchmarkError>> {
+/// Ranks the caller among publishers with enough volume in the window (>= 1000 impressions for eCPM, >= 1000 requests for fill, >= 500 measurable for viewability). Only the caller's own value plus the network median, percentile rank and sample size are returned, never another publisher's data. fillRate and viewableRate are percentages. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn reporting_controller_benchmark(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerBenchmark200Response, Error<ReportingControllerBenchmarkError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -518,6 +591,17 @@ pub async fn reporting_controller_benchmark(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -526,7 +610,7 @@ pub async fn reporting_controller_benchmark(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerBenchmarkError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -534,7 +618,8 @@ pub async fn reporting_controller_benchmark(configuration: &configuration::Confi
     }
 }
 
-pub async fn reporting_controller_bid_landscape(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerBidLandscapeError>> {
+/// From the caller's valid paid impressions over the last 30 days, returns clearing-price (price_paid) percentiles and a 10-point estimated win-rate curve: for each candidate bid, the fraction of observed won auctions that cleared at or below it. Only won auctions are seen, so the curve is optimistic at low bids. With no history the curve is empty and `note` is set.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_bid_landscape(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerBidLandscape200Response, Error<ReportingControllerBidLandscapeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -545,6 +630,17 @@ pub async fn reporting_controller_bid_landscape(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -553,7 +649,7 @@ pub async fn reporting_controller_bid_landscape(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerBidLandscapeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -561,7 +657,8 @@ pub async fn reporting_controller_bid_landscape(configuration: &configuration::C
     }
 }
 
-pub async fn reporting_controller_breakdown(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>, bdim: Option<&str>) -> Result<(), Error<ReportingControllerBreakdownError>> {
+/// Groups valid raw impressions (and matching clicks) by `bdim`: os (default), browser, deal, page (host), page_url (host+path), app, property, region, make, model or sub1..sub5. Unknown values fall back to os. Returns at most 50 rows ordered by revenue (impression-only dims) or impressions (os/browser). Revenue is publisher earnings for publishers and spend for other accounts. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_breakdown(configuration: &configuration::Configuration, to: Option<&str>, from: Option<&str>, bdim: Option<&str>) -> Result<Vec<models::ReportBreakdownRow>, Error<ReportingControllerBreakdownError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -581,6 +678,17 @@ pub async fn reporting_controller_breakdown(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -589,7 +697,7 @@ pub async fn reporting_controller_breakdown(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerBreakdownError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -597,7 +705,8 @@ pub async fn reporting_controller_breakdown(configuration: &configuration::Confi
     }
 }
 
-pub async fn reporting_controller_carousel(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerCarouselError>> {
+/// Clicks per card (0-based index) of each of the caller's carousel creatives, with the card title and price taken from the creative's stored carousel_items (title defaults to 'Card N'). Top 500 by clicks. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_carousel(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerCarousel200ResponseInner>, Error<ReportingControllerCarouselError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -608,6 +717,17 @@ pub async fn reporting_controller_carousel(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -616,7 +736,7 @@ pub async fn reporting_controller_carousel(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerCarouselError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -624,7 +744,8 @@ pub async fn reporting_controller_carousel(configuration: &configuration::Config
     }
 }
 
-pub async fn reporting_controller_closed_loop(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerClosedLoopError>> {
+/// Impressions, clicks, conversions and spend (returned as `revenue`) across the caller's house-ad campaigns from stats_hourly, with CTR, CVR and impression-to-conversion rate in percent. Returns zeros (with houseCampaigns) when there are no house campaigns or the query fails. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_closed_loop(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerClosedLoop200Response, Error<ReportingControllerClosedLoopError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -635,6 +756,17 @@ pub async fn reporting_controller_closed_loop(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -643,7 +775,7 @@ pub async fn reporting_controller_closed_loop(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerClosedLoopError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -651,7 +783,8 @@ pub async fn reporting_controller_closed_loop(configuration: &configuration::Con
     }
 }
 
-pub async fn reporting_controller_cohorts(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerCohortsError>> {
+/// Groups accounts by signup month and, for months 0..12 after signup, reports retention (fraction of the cohort with delivery that month) and cumulative average revenue per account. `scope=advertiser` uses spend; anything else (default) uses publisher earnings. Only accounts ever active on the chosen side are counted; cells in the future are null. No date window.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn reporting_controller_cohorts(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerCohorts200Response, Error<ReportingControllerCohortsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -662,6 +795,17 @@ pub async fn reporting_controller_cohorts(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -670,7 +814,7 @@ pub async fn reporting_controller_cohorts(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerCohortsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -678,7 +822,8 @@ pub async fn reporting_controller_cohorts(configuration: &configuration::Configu
     }
 }
 
-pub async fn reporting_controller_consent_rate(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerConsentRateError>> {
+/// Share of the caller's pixel events (adnet.pixel_events) ingested in personalized mode (consent granted, no GPC) versus aggregate-only, as totals and a daily series. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_consent_rate(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerConsentRate200Response, Error<ReportingControllerConsentRateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -689,6 +834,17 @@ pub async fn reporting_controller_consent_rate(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -697,7 +853,7 @@ pub async fn reporting_controller_consent_rate(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerConsentRateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -705,7 +861,8 @@ pub async fn reporting_controller_consent_rate(configuration: &configuration::Co
     }
 }
 
-pub async fn reporting_controller_create_saved(configuration: &configuration::Configuration, create_saved_report_dto: models::CreateSavedReportDto) -> Result<(), Error<ReportingControllerCreateSavedError>> {
+/// Stores a named report definition for the caller. Body: `name` (default 'Untitled report') and `config` (any JSON object, default {}).  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_create_saved(configuration: &configuration::Configuration, create_saved_report_dto: models::CreateSavedReportDto) -> Result<models::ReportSavedReport, Error<ReportingControllerCreateSavedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -716,6 +873,17 @@ pub async fn reporting_controller_create_saved(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_saved_report_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -725,7 +893,7 @@ pub async fn reporting_controller_create_saved(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerCreateSavedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -733,7 +901,8 @@ pub async fn reporting_controller_create_saved(configuration: &configuration::Co
     }
 }
 
-pub async fn reporting_controller_create_scheduled(configuration: &configuration::Configuration, create_scheduled_report_dto: models::CreateScheduledReportDto) -> Result<(), Error<ReportingControllerCreateScheduledError>> {
+/// Creates a scheduled report. Body: `name`, `config` (JSON; `scope` 'advertiser'|'publisher' and `dim` select the stats query), `cadence` ('daily' default, or 'weekly') and `email`. next_run_at is set one day or one week from now; each run emails the stats for the last 1 or 7 days.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_create_scheduled(configuration: &configuration::Configuration, create_scheduled_report_dto: models::CreateScheduledReportDto) -> Result<models::ReportScheduledReport, Error<ReportingControllerCreateScheduledError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -744,6 +913,17 @@ pub async fn reporting_controller_create_scheduled(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_scheduled_report_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -753,7 +933,7 @@ pub async fn reporting_controller_create_scheduled(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerCreateScheduledError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -761,7 +941,8 @@ pub async fn reporting_controller_create_scheduled(configuration: &configuration
     }
 }
 
-pub async fn reporting_controller_creatives(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerCreativesError>> {
+/// For the caller's creatives: valid impressions, clicks, CTR, conversions (attributed through the click that drove them) and CVR, sorted by impressions and capped at 50. Names come from the creative title or brand name. `fatigue` is the daily CTR series of the highest-volume creative so decay is visible. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_creatives(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerCreatives200Response, Error<ReportingControllerCreativesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -772,6 +953,17 @@ pub async fn reporting_controller_creatives(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -780,7 +972,7 @@ pub async fn reporting_controller_creatives(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerCreativesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -788,7 +980,8 @@ pub async fn reporting_controller_creatives(configuration: &configuration::Confi
     }
 }
 
-pub async fn reporting_controller_delete_saved(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<ReportingControllerDeleteSavedError>> {
+/// Deletes one of the caller's saved reports by id. Returns 404 if it does not exist or belongs to another account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_delete_saved(configuration: &configuration::Configuration, id: &str) -> Result<models::ReportingControllerDeleteSaved200Response, Error<ReportingControllerDeleteSavedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -799,6 +992,17 @@ pub async fn reporting_controller_delete_saved(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -807,7 +1011,7 @@ pub async fn reporting_controller_delete_saved(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerDeleteSavedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -815,7 +1019,8 @@ pub async fn reporting_controller_delete_saved(configuration: &configuration::Co
     }
 }
 
-pub async fn reporting_controller_delete_scheduled(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<ReportingControllerDeleteScheduledError>> {
+/// Deletes one of the caller's scheduled reports by id. Returns 404 if it does not exist or belongs to another account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_delete_scheduled(configuration: &configuration::Configuration, id: &str) -> Result<models::ReportingControllerDeleteSaved200Response, Error<ReportingControllerDeleteScheduledError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -826,6 +1031,17 @@ pub async fn reporting_controller_delete_scheduled(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -834,7 +1050,7 @@ pub async fn reporting_controller_delete_scheduled(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerDeleteScheduledError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -842,7 +1058,8 @@ pub async fn reporting_controller_delete_scheduled(configuration: &configuration
     }
 }
 
-pub async fn reporting_controller_delivery_funnel(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerDeliveryFunnelError>> {
+/// Requests and filled responses (ad_requests), rendered valid impressions (impressions) and measurable/viewable beacons (viewability) for the caller's inventory, with stage-to-stage rates. `discrepancy` is filled minus rendered (floored at 0). Rates are fractions 0..1. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn reporting_controller_delivery_funnel(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerDeliveryFunnel200Response, Error<ReportingControllerDeliveryFunnelError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -853,6 +1070,17 @@ pub async fn reporting_controller_delivery_funnel(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -861,7 +1089,7 @@ pub async fn reporting_controller_delivery_funnel(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerDeliveryFunnelError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -869,7 +1097,8 @@ pub async fn reporting_controller_delivery_funnel(configuration: &configuration:
     }
 }
 
-pub async fn reporting_controller_delivery_pacing(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerDeliveryPacingError>> {
+/// For each of the caller's campaigns with a delivery_goal or a guaranteed/sponsorship priority tier: the goal, all-time valid delivered impressions or clicks (per goal_type), percent to goal, percent of the flight elapsed, and whether delivery is keeping up (pctToGoal >= flightProgressPct). Open-ended flights count as 100% elapsed once started. No query params.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_delivery_pacing(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerDeliveryPacing200ResponseInner>, Error<ReportingControllerDeliveryPacingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -880,6 +1109,17 @@ pub async fn reporting_controller_delivery_pacing(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -888,7 +1128,7 @@ pub async fn reporting_controller_delivery_pacing(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerDeliveryPacingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -896,7 +1136,8 @@ pub async fn reporting_controller_delivery_pacing(configuration: &configuration:
     }
 }
 
-pub async fn reporting_controller_fill(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerFillError>> {
+/// Counts the caller's ad requests from adnet.ad_requests, how many were filled, and the fill rate, plus a map of unfilled requests by no-fill reason (empty reasons bucketed as 'unknown'). Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn reporting_controller_fill(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerFill200Response, Error<ReportingControllerFillError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -907,6 +1148,17 @@ pub async fn reporting_controller_fill(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -915,7 +1167,7 @@ pub async fn reporting_controller_fill(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerFillError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -923,7 +1175,8 @@ pub async fn reporting_controller_fill(configuration: &configuration::Configurat
     }
 }
 
-pub async fn reporting_controller_funnel(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerFunnelError>> {
+/// Totals impressions, clicks and conversions for the caller's campaigns from adnet.stats_hourly with CTR, CVR (conversions/clicks) and impression-to-conversion rate, all in percent. Returns zeros when there is no data. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_funnel(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerFunnel200Response, Error<ReportingControllerFunnelError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -934,6 +1187,17 @@ pub async fn reporting_controller_funnel(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -942,7 +1206,7 @@ pub async fn reporting_controller_funnel(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerFunnelError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -950,7 +1214,8 @@ pub async fn reporting_controller_funnel(configuration: &configuration::Configur
     }
 }
 
-pub async fn reporting_controller_geo(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerGeoError>> {
+/// Impressions, clicks and amount per country from adnet.stats_hourly, ordered by amount. Amount is publisher earnings for publisher accounts and spend for other accounts; rows with an empty geo are skipped. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_geo(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerGeo200ResponseInner>, Error<ReportingControllerGeoError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -961,6 +1226,17 @@ pub async fn reporting_controller_geo(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -969,7 +1245,7 @@ pub async fn reporting_controller_geo(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerGeoError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -977,7 +1253,8 @@ pub async fn reporting_controller_geo(configuration: &configuration::Configurati
     }
 }
 
-pub async fn reporting_controller_incrementality(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerIncrementalityError>> {
+/// For up to 200 of the caller's campaigns, compares the conversion rate of exposed users (served an impression) with a holdout group (adnet.holdouts). Conversions attribute to users via the click that drove them. lift = (exposedCvr - holdoutCvr) / holdoutCvr; holdout figures and lift are 0 when there is no holdout data. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_incrementality(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerIncrementality200ResponseInner>, Error<ReportingControllerIncrementalityError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -988,6 +1265,17 @@ pub async fn reporting_controller_incrementality(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -996,7 +1284,7 @@ pub async fn reporting_controller_incrementality(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerIncrementalityError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1004,7 +1292,8 @@ pub async fn reporting_controller_incrementality(configuration: &configuration::
     }
 }
 
-pub async fn reporting_controller_ivt(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerIvtError>> {
+/// Counts impressions flagged invalid (is_valid = 0) in the last 30 days, grouped by IVT reason and ordered by count. Publishers see IVT on their inventory; every other account sees IVT on its campaigns. Takes no window params.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn reporting_controller_ivt(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerIvt200ResponseInner>, Error<ReportingControllerIvtError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1015,6 +1304,17 @@ pub async fn reporting_controller_ivt(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1023,7 +1323,7 @@ pub async fn reporting_controller_ivt(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerIvtError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1031,7 +1331,8 @@ pub async fn reporting_controller_ivt(configuration: &configuration::Configurati
     }
 }
 
-pub async fn reporting_controller_journey(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerJourneyError>> {
+/// Builds each user's time-ordered sequence of placements (first 6) from the caller's valid impressions and counts the most common paths, joined with ' > '. `topN` sets the result size (default 20, max 50); at most 50,000 users are scanned. Returns an empty list on query failure. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_journey(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerJourney200ResponseInner>, Error<ReportingControllerJourneyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1042,6 +1343,17 @@ pub async fn reporting_controller_journey(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1050,7 +1362,7 @@ pub async fn reporting_controller_journey(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerJourneyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1058,7 +1370,8 @@ pub async fn reporting_controller_journey(configuration: &configuration::Configu
     }
 }
 
-pub async fn reporting_controller_liquidity(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerLiquidityError>> {
+/// Network-wide ad requests, filled and unmatched requests, fill rate, the top 12 no-fill reasons and a daily requests/filled series, from adnet.ad_requests. Not scoped to an account. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn reporting_controller_liquidity(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerLiquidity200Response, Error<ReportingControllerLiquidityError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1069,6 +1382,17 @@ pub async fn reporting_controller_liquidity(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1077,7 +1401,7 @@ pub async fn reporting_controller_liquidity(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerLiquidityError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1085,7 +1409,8 @@ pub async fn reporting_controller_liquidity(configuration: &configuration::Confi
     }
 }
 
-pub async fn reporting_controller_list_saved(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerListSavedError>> {
+/// Returns the caller's saved report definitions, newest first. The config is opaque JSON stored for the dashboard.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_list_saved(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportSavedReport>, Error<ReportingControllerListSavedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1096,6 +1421,17 @@ pub async fn reporting_controller_list_saved(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1104,7 +1440,7 @@ pub async fn reporting_controller_list_saved(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerListSavedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1112,7 +1448,8 @@ pub async fn reporting_controller_list_saved(configuration: &configuration::Conf
     }
 }
 
-pub async fn reporting_controller_list_scheduled(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerListScheduledError>> {
+/// Returns the caller's scheduled email reports with cadence, recipient and last/next run times, newest first.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_list_scheduled(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportScheduledReport>, Error<ReportingControllerListScheduledError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1123,6 +1460,17 @@ pub async fn reporting_controller_list_scheduled(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1131,7 +1479,7 @@ pub async fn reporting_controller_list_scheduled(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerListScheduledError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1139,7 +1487,8 @@ pub async fn reporting_controller_list_scheduled(configuration: &configuration::
     }
 }
 
-pub async fn reporting_controller_marketplace(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerMarketplaceError>> {
+/// Gross advertiser spend, publisher payout, platform margin and take rate over the window (stats_hourly), the top 10 advertisers by spend and publishers by earnings with their share of the total, and monthly signup counts per account type from Postgres (cohorts ignore the window). Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn reporting_controller_marketplace(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerMarketplace200Response, Error<ReportingControllerMarketplaceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1150,6 +1499,17 @@ pub async fn reporting_controller_marketplace(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1158,7 +1518,7 @@ pub async fn reporting_controller_marketplace(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerMarketplaceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1166,7 +1526,8 @@ pub async fn reporting_controller_marketplace(configuration: &configuration::Con
     }
 }
 
-pub async fn reporting_controller_personal_network(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerPersonalNetworkError>> {
+/// Sums the 'infra_fee' ledger entries charged to the caller over the period (absolute value, total and per day) and counts valid impressions of the caller's house-ad campaigns. `from`/`to` are YYYY-MM-DD dates here (default: the last 30 days through today, inclusive). infraFeePct is read from platform_config (default 0.05).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_personal_network(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerPersonalNetwork200Response, Error<ReportingControllerPersonalNetworkError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1177,6 +1538,17 @@ pub async fn reporting_controller_personal_network(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1185,7 +1557,7 @@ pub async fn reporting_controller_personal_network(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerPersonalNetworkError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1193,7 +1565,8 @@ pub async fn reporting_controller_personal_network(configuration: &configuration
     }
 }
 
-pub async fn reporting_controller_pivot(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerPivotError>> {
+/// Groups adnet.stats_hourly by `dim1` x `dim2`, each one of day, geo, device, os, browser, format, placement_id, campaign_id (os/browser are not in the rollup and resolve to a constant '(n/a)'). An unknown dimension returns 403 'invalid pivot dimension'. Amount is earnings (publisher) or spend (advertiser); max 1000 rows ordered by amount. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_pivot(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerPivot200ResponseInner>, Error<ReportingControllerPivotError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1204,6 +1577,17 @@ pub async fn reporting_controller_pivot(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1212,7 +1596,7 @@ pub async fn reporting_controller_pivot(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerPivotError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1220,7 +1604,8 @@ pub async fn reporting_controller_pivot(configuration: &configuration::Configura
     }
 }
 
-pub async fn reporting_controller_publisher(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerPublisherError>> {
+/// Aggregates the caller's publisher earnings from the hourly rollup (adnet.stats_hourly). `dim` picks the grouping: day (default), hour, geo, device, format, placement_id or campaign_id; rows are ordered by the dimension. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn reporting_controller_publisher(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportPublisherStatsRow>, Error<ReportingControllerPublisherError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1231,6 +1616,17 @@ pub async fn reporting_controller_publisher(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1239,7 +1635,7 @@ pub async fn reporting_controller_publisher(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerPublisherError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1247,7 +1643,8 @@ pub async fn reporting_controller_publisher(configuration: &configuration::Confi
     }
 }
 
-pub async fn reporting_controller_publisher_consent(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerPublisherConsentError>> {
+/// Share of the caller's valid impressions served with personalized-processing consent (impressions.consented, set by the engine from the request's privacy signals), as totals and a daily series. Distinct from the advertiser pixel consent rate. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn reporting_controller_publisher_consent(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerPublisherConsent200Response, Error<ReportingControllerPublisherConsentError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1258,6 +1655,17 @@ pub async fn reporting_controller_publisher_consent(configuration: &configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1266,7 +1674,7 @@ pub async fn reporting_controller_publisher_consent(configuration: &configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerPublisherConsentError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1274,7 +1682,8 @@ pub async fn reporting_controller_publisher_consent(configuration: &configuratio
     }
 }
 
-pub async fn reporting_controller_publisher_placements(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerPublisherPlacementsError>> {
+/// Joins three ClickHouse aggregations by placement_id: earnings (stats_hourly), fill (ad_requests) and viewability (adnet.viewability), then resolves placement names from Postgres. A placement appears if it has activity in any of the three. Sorted by revenue then impressions. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn reporting_controller_publisher_placements(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportPlacementRow>, Error<ReportingControllerPublisherPlacementsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1285,6 +1694,17 @@ pub async fn reporting_controller_publisher_placements(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1293,7 +1713,7 @@ pub async fn reporting_controller_publisher_placements(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerPublisherPlacementsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1301,7 +1721,8 @@ pub async fn reporting_controller_publisher_placements(configuration: &configura
     }
 }
 
-pub async fn reporting_controller_reach(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerReachError>> {
+/// Computes unique users (by user_id_hash) from valid raw impressions, average frequency, a frequency histogram (buckets 1, 2, 3, 4, 5, 6-10, 11+ in fixed order) and a daily reach series. Publishers measure their inventory's audience; other accounts their campaigns' reach. Impressions without a user hash are excluded. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_reach(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerReach200Response, Error<ReportingControllerReachError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1312,6 +1733,17 @@ pub async fn reporting_controller_reach(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1320,7 +1752,7 @@ pub async fn reporting_controller_reach(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerReachError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1328,7 +1760,8 @@ pub async fn reporting_controller_reach(configuration: &configuration::Configura
     }
 }
 
-pub async fn reporting_controller_realtime(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerRealtimeError>> {
+/// Per-minute series of valid impressions and clicks over the last 15 minutes from the raw event tables, with totals. Publisher accounts see their inventory (earnings); other accounts their campaigns (spend).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_realtime(configuration: &configuration::Configuration, ) -> Result<models::ReportRealtime, Error<ReportingControllerRealtimeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1339,6 +1772,17 @@ pub async fn reporting_controller_realtime(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1347,7 +1791,7 @@ pub async fn reporting_controller_realtime(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerRealtimeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1355,7 +1799,8 @@ pub async fn reporting_controller_realtime(configuration: &configuration::Config
     }
 }
 
-pub async fn reporting_controller_realtime_stream(configuration: &configuration::Configuration, scope: &str) -> Result<(), Error<ReportingControllerRealtimeStreamError>> {
+/// Pushes the same payload as GET /v1/reporting/realtime as an SSE `data:` event immediately on connect and then every ~3 seconds (a server-side poll, not a sub-second event stream). Because EventSource cannot set headers, this route authenticates with the session token in `?access_token=`. `scope=advertiser|publisher` selects the side of a dual-sided account; it defaults to the account type.  Auth: public, no credentials required. Additionally checked by SseAuthGuard.
+pub async fn reporting_controller_realtime_stream(configuration: &configuration::Configuration, scope: &str) -> Result<String, Error<ReportingControllerRealtimeStreamError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1375,7 +1820,7 @@ pub async fn reporting_controller_realtime_stream(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerRealtimeStreamError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1383,7 +1828,8 @@ pub async fn reporting_controller_realtime_stream(configuration: &configuration:
     }
 }
 
-pub async fn reporting_controller_roas(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerRoasError>> {
+/// Per-day spend (stats_hourly) joined to attributed conversion count and conversion_value (adnet.conversions), with ROAS = conversionValue / spend. Days present in either source are included, sorted ascending. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn reporting_controller_roas(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerRoas200ResponseInner>, Error<ReportingControllerRoasError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1394,6 +1840,17 @@ pub async fn reporting_controller_roas(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1402,7 +1859,7 @@ pub async fn reporting_controller_roas(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerRoasError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1410,7 +1867,8 @@ pub async fn reporting_controller_roas(configuration: &configuration::Configurat
     }
 }
 
-pub async fn reporting_controller_serve_latency(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerServeLatencyError>> {
+/// Engine decision latency percentiles (from ad_requests.decision_us, reported in milliseconds) with the share of requests over the 100 ms soft SLA and a daily p95 series. Also returns client render latency from SDK beacons (null if the tag has not reported any) and client-side load failures (client_timeout/client_error) as a share of all requests. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn reporting_controller_serve_latency(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerServeLatency200Response, Error<ReportingControllerServeLatencyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1421,6 +1879,17 @@ pub async fn reporting_controller_serve_latency(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1429,7 +1898,7 @@ pub async fn reporting_controller_serve_latency(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerServeLatencyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1437,7 +1906,8 @@ pub async fn reporting_controller_serve_latency(configuration: &configuration::C
     }
 }
 
-pub async fn reporting_controller_sustainability(configuration: &configuration::Configuration, period_days: &str) -> Result<(), Error<ReportingControllerSustainabilityError>> {
+/// Counts valid impressions over the last `periodDays` days (default 30, min 1) and converts them to kWh and kg CO2e using configurable factors (SUSTAINABILITY_KWH_PER_1K, default 0.0009 kWh per 1000 impressions; SUSTAINABILITY_GRID_GCO2_PER_KWH, default 475). Admins get a network-wide figure; publishers their inventory; other accounts their campaigns.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn reporting_controller_sustainability(configuration: &configuration::Configuration, period_days: &str) -> Result<models::ReportingControllerSustainability200Response, Error<ReportingControllerSustainabilityError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1449,6 +1919,17 @@ pub async fn reporting_controller_sustainability(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1457,7 +1938,7 @@ pub async fn reporting_controller_sustainability(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerSustainabilityError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1465,7 +1946,8 @@ pub async fn reporting_controller_sustainability(configuration: &configuration::
     }
 }
 
-pub async fn reporting_controller_time_to_click(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerTimeToClickError>> {
+/// Average and median milliseconds between render and click for valid clicks with a recorded time_to_click_ms, plus counts in fixed buckets (<1s, 1-3s, 3-10s, 10-30s, 30s+). Publishers see clicks on their inventory; other accounts on their campaigns. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded (2020-01-01 .. 2099-01-01).  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_time_to_click(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerTimeToClick200Response, Error<ReportingControllerTimeToClickError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1476,6 +1958,17 @@ pub async fn reporting_controller_time_to_click(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1484,7 +1977,7 @@ pub async fn reporting_controller_time_to_click(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerTimeToClickError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1492,7 +1985,8 @@ pub async fn reporting_controller_time_to_click(configuration: &configuration::C
     }
 }
 
-pub async fn reporting_controller_video(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerVideoError>> {
+/// Overall video funnel (starts, quartiles, completes, skips, errors and rates) from adnet.video_events, plus the same metrics per placement (publisher accounts) or per campaign (other accounts), top 100 by starts. Only exact VAST quartile events count toward the funnel. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser, publisher.
+pub async fn reporting_controller_video(configuration: &configuration::Configuration, ) -> Result<models::ReportingControllerVideo200Response, Error<ReportingControllerVideoError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1503,6 +1997,17 @@ pub async fn reporting_controller_video(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1511,7 +2016,7 @@ pub async fn reporting_controller_video(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerVideoError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1519,7 +2024,8 @@ pub async fn reporting_controller_video(configuration: &configuration::Configura
     }
 }
 
-pub async fn reporting_controller_viewability(configuration: &configuration::Configuration, ) -> Result<(), Error<ReportingControllerViewabilityError>> {
+/// Measurable and viewable beacon counts, viewable rate, and average in-view percent and duration (of viewable events) from adnet.viewability. `groupBy=campaign` groups by campaign, anything else by placement. Advertisers see their own campaigns, publishers their own inventory, admins the whole network. Max 1000 rows ordered by measurable. Optional `from`/`to` query params bound the window (ClickHouse DateTime, e.g. `2026-01-01 00:00:00`, inclusive); when omitted the window is unbounded.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn reporting_controller_viewability(configuration: &configuration::Configuration, ) -> Result<Vec<models::ReportingControllerViewability200ResponseInner>, Error<ReportingControllerViewabilityError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1530,6 +2036,17 @@ pub async fn reporting_controller_viewability(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1538,7 +2055,7 @@ pub async fn reporting_controller_viewability(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ReportingControllerViewabilityError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

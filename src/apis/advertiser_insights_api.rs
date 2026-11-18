@@ -51,7 +51,8 @@ pub enum InsightsControllerShadingSavingsError {
 }
 
 
-pub async fn insights_controller_bid_simulator(configuration: &configuration::Configuration, format: &str, geo: Option<&str>, bid: Option<f64>) -> Result<(), Error<InsightsControllerBidSimulatorError>> {
+/// For the required `format` and optional `geo`, takes about 10 candidate bids spanning the advertiser's recent clearing-price range, plus the caller's own `bid` if given. Each bid gets an estimated win rate from the empirical CDF of the advertiser's last-30-day clearing prices, and projected impressions and spend per day. Prices are per impression (CPM = price x 1000). With no auction history for the slice, `points` is empty and `note` explains why.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn insights_controller_bid_simulator(configuration: &configuration::Configuration, format: &str, geo: Option<&str>, bid: Option<f64>) -> Result<models::InsightsControllerBidSimulator200Response, Error<InsightsControllerBidSimulatorError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -69,6 +70,17 @@ pub async fn insights_controller_bid_simulator(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -77,7 +89,7 @@ pub async fn insights_controller_bid_simulator(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<InsightsControllerBidSimulatorError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -85,7 +97,8 @@ pub async fn insights_controller_bid_simulator(configuration: &configuration::Co
     }
 }
 
-pub async fn insights_controller_competitiveness(configuration: &configuration::Configuration, format: &str, geo: Option<&str>) -> Result<(), Error<InsightsControllerCompetitivenessError>> {
+/// Reads the market-wide clearing-price distribution over the last 30 days for `format` (required) and optional `geo`, and returns p50, p90, the sample size and a low/moderate/high score based on the price spread. The score is \"low\" when there is no data. Uses market data only, not the caller's own history.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn insights_controller_competitiveness(configuration: &configuration::Configuration, format: &str, geo: Option<&str>) -> Result<models::InsightsControllerCompetitiveness200Response, Error<InsightsControllerCompetitivenessError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -100,6 +113,17 @@ pub async fn insights_controller_competitiveness(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -108,7 +132,7 @@ pub async fn insights_controller_competitiveness(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<InsightsControllerCompetitivenessError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -116,7 +140,8 @@ pub async fn insights_controller_competitiveness(configuration: &configuration::
     }
 }
 
-pub async fn insights_controller_creative_performance(configuration: &configuration::Configuration, campaign_id: &str) -> Result<(), Error<InsightsControllerCreativePerformanceError>> {
+/// Rolls up the last 30 days of valid impressions and spend, clicks and click-attributed conversions by creative for `campaignId` (required). Creative names come from Postgres. Rows include CTR and CVR as percentages and eCPM, sorted by spend. A campaign the advertiser does not own returns an empty list, not an error.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn insights_controller_creative_performance(configuration: &configuration::Configuration, campaign_id: &str) -> Result<models::InsightsControllerCreativePerformance200Response, Error<InsightsControllerCreativePerformanceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -128,6 +153,17 @@ pub async fn insights_controller_creative_performance(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -136,7 +172,7 @@ pub async fn insights_controller_creative_performance(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<InsightsControllerCreativePerformanceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -144,7 +180,8 @@ pub async fn insights_controller_creative_performance(configuration: &configurat
     }
 }
 
-pub async fn insights_controller_pacing(configuration: &configuration::Configuration, ) -> Result<(), Error<InsightsControllerPacingError>> {
+/// For each of the advertiser's campaigns, compares the percentage of the delivery goal reached with the percentage of the flight that has elapsed, and flags whether the campaign is on pace. Reuses the billing-reports pacing calculation.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn insights_controller_pacing(configuration: &configuration::Configuration, ) -> Result<models::InsightsControllerPacing200Response, Error<InsightsControllerPacingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -155,6 +192,17 @@ pub async fn insights_controller_pacing(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -163,7 +211,7 @@ pub async fn insights_controller_pacing(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<InsightsControllerPacingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -171,7 +219,8 @@ pub async fn insights_controller_pacing(configuration: &configuration::Configura
     }
 }
 
-pub async fn insights_controller_shading_savings(configuration: &configuration::Configuration, campaign_id: Option<&str>) -> Result<(), Error<InsightsControllerShadingSavingsError>> {
+/// Combines the bid-shading factors the engine publishes for this advertiser with its last-30-day spend (optionally only `campaignId`) to estimate overpay avoided: roughly spend x (1/avgFactor - 1), with the factor floored at 0.5. If shading is not active for the advertiser yet, all values are zero and a note says so. The figures are directional estimates.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn insights_controller_shading_savings(configuration: &configuration::Configuration, campaign_id: Option<&str>) -> Result<models::InsightsControllerShadingSavings200Response, Error<InsightsControllerShadingSavingsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -185,6 +234,17 @@ pub async fn insights_controller_shading_savings(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -193,7 +253,7 @@ pub async fn insights_controller_shading_savings(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<InsightsControllerShadingSavingsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

@@ -37,7 +37,8 @@ pub enum PortalTemplatesControllerListTemplatesError {
 }
 
 
-pub async fn portal_templates_controller_create_config(configuration: &configuration::Configuration, create_portal_config_dto: models::CreatePortalConfigDto) -> Result<(), Error<PortalTemplatesControllerCreateConfigError>> {
+/// Stores a `config` object for template key `template` and returns its id and the hosted template URL that renders it. Use the URL as an `html5` creative's asset URL (for example on a metaverse portal surface). 400 for an unknown template.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn portal_templates_controller_create_config(configuration: &configuration::Configuration, create_portal_config_dto: models::CreatePortalConfigDto) -> Result<models::PortalTemplatesControllerCreateConfig201Response, Error<PortalTemplatesControllerCreateConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -48,6 +49,17 @@ pub async fn portal_templates_controller_create_config(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_portal_config_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -57,7 +69,7 @@ pub async fn portal_templates_controller_create_config(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PortalTemplatesControllerCreateConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -65,7 +77,8 @@ pub async fn portal_templates_controller_create_config(configuration: &configura
     }
 }
 
-pub async fn portal_templates_controller_get_config(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<PortalTemplatesControllerGetConfigError>> {
+/// Public endpoint the hosted template calls at runtime to load its saved configuration. 404 if the config id does not exist.  Auth: public, no credentials required.
+pub async fn portal_templates_controller_get_config(configuration: &configuration::Configuration, id: &str) -> Result<models::PortalTemplatesControllerGetConfig200Response, Error<PortalTemplatesControllerGetConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -84,7 +97,7 @@ pub async fn portal_templates_controller_get_config(configuration: &configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PortalTemplatesControllerGetConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -92,7 +105,8 @@ pub async fn portal_templates_controller_get_config(configuration: &configuratio
     }
 }
 
-pub async fn portal_templates_controller_list_templates(configuration: &configuration::Configuration, ) -> Result<(), Error<PortalTemplatesControllerListTemplatesError>> {
+/// Returns the catalog of prebuilt HTML5 portal templates (product-showcase, spin-to-win, 360-viewer, reward-to-play, reward-onchain), each with the config fields it accepts.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn portal_templates_controller_list_templates(configuration: &configuration::Configuration, ) -> Result<Vec<models::PortalTemplatesControllerListTemplates200ResponseInner>, Error<PortalTemplatesControllerListTemplatesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -103,6 +117,17 @@ pub async fn portal_templates_controller_list_templates(configuration: &configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -111,7 +136,7 @@ pub async fn portal_templates_controller_list_templates(configuration: &configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PortalTemplatesControllerListTemplatesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

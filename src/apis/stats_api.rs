@@ -23,7 +23,8 @@ pub enum StatsControllerGetError {
 }
 
 
-pub async fn stats_controller_get(configuration: &configuration::Configuration, ) -> Result<(), Error<StatsControllerGetError>> {
+/// Public, unauthenticated marketing figures: total impressions served across the network and total amount paid out to publishers (settled payouts). Cached in Redis for 10 minutes.  Auth: public, no credentials required.
+pub async fn stats_controller_get(configuration: &configuration::Configuration, ) -> Result<models::StatsControllerGet200Response, Error<StatsControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -42,7 +43,7 @@ pub async fn stats_controller_get(configuration: &configuration::Configuration, 
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<StatsControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

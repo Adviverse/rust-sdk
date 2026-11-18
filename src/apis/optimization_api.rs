@@ -65,7 +65,8 @@ pub enum OptimizationControllerSetRuleEnabledError {
 }
 
 
-pub async fn optimization_controller_ack_alert(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<OptimizationControllerAckAlertError>> {
+/// Marks alert `id` as acknowledged. Ids not owned by the account are silently ignored, and the response is the same either way.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn optimization_controller_ack_alert(configuration: &configuration::Configuration, id: &str) -> Result<models::OptimizationControllerAckAlert201Response, Error<OptimizationControllerAckAlertError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -76,6 +77,17 @@ pub async fn optimization_controller_ack_alert(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -84,7 +96,7 @@ pub async fn optimization_controller_ack_alert(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OptimizationControllerAckAlertError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -92,7 +104,8 @@ pub async fn optimization_controller_ack_alert(configuration: &configuration::Co
     }
 }
 
-pub async fn optimization_controller_create_rule(configuration: &configuration::Configuration, create_automation_rule_dto: models::CreateAutomationRuleDto) -> Result<(), Error<OptimizationControllerCreateRuleError>> {
+/// Creates a rule of the form \"when `metric` (cpa, ctr, spend, conversions, fill_rate) is `operator` (gt or lt) `threshold` over `windowHours`, apply `action`\" (pause, resume, notify or adjust_bid). `name`, `metric`, `operator`, `threshold` and `action` are required. `scope` is campaign (the default, which requires `targetId`) or all. `windowHours` defaults to 24 and is clamped to 1-720. `actionValue` is kept only for adjust_bid. Invalid input returns 400.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn optimization_controller_create_rule(configuration: &configuration::Configuration, create_automation_rule_dto: models::CreateAutomationRuleDto) -> Result<models::AudienceAutomationRule, Error<OptimizationControllerCreateRuleError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -103,6 +116,17 @@ pub async fn optimization_controller_create_rule(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_automation_rule_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -112,7 +136,7 @@ pub async fn optimization_controller_create_rule(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OptimizationControllerCreateRuleError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -120,7 +144,8 @@ pub async fn optimization_controller_create_rule(configuration: &configuration::
     }
 }
 
-pub async fn optimization_controller_list_alerts(configuration: &configuration::Configuration, ) -> Result<(), Error<OptimizationControllerListAlertsError>> {
+/// Returns up to 200 of the account's anomaly alerts, newest first. Alerts are raised by the hourly anomaly detector. Kinds include spend and CPA spikes, CTR and CVR drops, fill-rate drops and no-fill spikes.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn optimization_controller_list_alerts(configuration: &configuration::Configuration, ) -> Result<Vec<models::OptimizationControllerListAlerts200ResponseInner>, Error<OptimizationControllerListAlertsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -131,6 +156,17 @@ pub async fn optimization_controller_list_alerts(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -139,7 +175,7 @@ pub async fn optimization_controller_list_alerts(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OptimizationControllerListAlertsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -147,7 +183,8 @@ pub async fn optimization_controller_list_alerts(configuration: &configuration::
     }
 }
 
-pub async fn optimization_controller_list_rules(configuration: &configuration::Configuration, ) -> Result<(), Error<OptimizationControllerListRulesError>> {
+/// Returns the account's automation rules, newest first. A background job evaluates each enabled rule's metric over its window and applies the action when the condition holds.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn optimization_controller_list_rules(configuration: &configuration::Configuration, ) -> Result<Vec<models::AudienceAutomationRule>, Error<OptimizationControllerListRulesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -158,6 +195,17 @@ pub async fn optimization_controller_list_rules(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -166,7 +214,7 @@ pub async fn optimization_controller_list_rules(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OptimizationControllerListRulesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -174,7 +222,8 @@ pub async fn optimization_controller_list_rules(configuration: &configuration::C
     }
 }
 
-pub async fn optimization_controller_optimizer_log(configuration: &configuration::Configuration, limit: &str) -> Result<(), Error<OptimizationControllerOptimizerLogError>> {
+/// Audit log of the automatic budget reallocator. For auto-strategy campaigns it moves daily budget toward lower-CPA performers, keeps the advertiser's total budget unchanged and limits how far each campaign can move. Each row records the old and new budget and the CPA, conversions and spend that drove the change. `limit` defaults to 100 and is clamped to 1-500; newest first.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn optimization_controller_optimizer_log(configuration: &configuration::Configuration, limit: &str) -> Result<Vec<models::OptimizationControllerOptimizerLog200ResponseInner>, Error<OptimizationControllerOptimizerLogError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -186,6 +235,17 @@ pub async fn optimization_controller_optimizer_log(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -194,7 +254,7 @@ pub async fn optimization_controller_optimizer_log(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OptimizationControllerOptimizerLogError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -202,7 +262,8 @@ pub async fn optimization_controller_optimizer_log(configuration: &configuration
     }
 }
 
-pub async fn optimization_controller_remove_rule(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<OptimizationControllerRemoveRuleError>> {
+/// Deletes rule `id` if it belongs to the account. Deleting an id the account does not own is a silent no-op that still returns `{deleted:true}`.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn optimization_controller_remove_rule(configuration: &configuration::Configuration, id: &str) -> Result<models::PixelControllerDeletePixel200Response, Error<OptimizationControllerRemoveRuleError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -213,6 +274,17 @@ pub async fn optimization_controller_remove_rule(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -221,7 +293,7 @@ pub async fn optimization_controller_remove_rule(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OptimizationControllerRemoveRuleError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -229,7 +301,8 @@ pub async fn optimization_controller_remove_rule(configuration: &configuration::
     }
 }
 
-pub async fn optimization_controller_set_rule_enabled(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<OptimizationControllerSetRuleEnabledError>> {
+/// Sets `enabled` from the request body on rule `id` without deleting it. Returns the updated rule. If the rule does not exist or is not owned by the account, the response is 400 \"rule not found\".  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn optimization_controller_set_rule_enabled(configuration: &configuration::Configuration, id: &str) -> Result<models::AudienceAutomationRule, Error<OptimizationControllerSetRuleEnabledError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -240,6 +313,17 @@ pub async fn optimization_controller_set_rule_enabled(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -248,7 +332,7 @@ pub async fn optimization_controller_set_rule_enabled(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<OptimizationControllerSetRuleEnabledError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

@@ -37,7 +37,8 @@ pub enum VerificationControllerPutSettingsError {
 }
 
 
-pub async fn verification_controller_categories(configuration: &configuration::Configuration, ) -> Result<(), Error<VerificationControllerCategoriesError>> {
+/// Returns the static brand-safety category catalog (ids such as `adult`, `violence`, `hate`) accepted in verification settings.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn verification_controller_categories(configuration: &configuration::Configuration, ) -> Result<Vec<models::VerificationControllerCategories200ResponseInner>, Error<VerificationControllerCategoriesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -48,6 +49,17 @@ pub async fn verification_controller_categories(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -56,7 +68,7 @@ pub async fn verification_controller_categories(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<VerificationControllerCategoriesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -64,7 +76,8 @@ pub async fn verification_controller_categories(configuration: &configuration::C
     }
 }
 
-pub async fn verification_controller_get_settings(configuration: &configuration::Configuration, ) -> Result<(), Error<VerificationControllerGetSettingsError>> {
+/// Returns your measurement vendor, viewability target, blocked brand-safety categories, blocked domains and keywords, falling back to the global defaults when you have not saved settings. The vendor API key is never returned, only `apiKeySet`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn verification_controller_get_settings(configuration: &configuration::Configuration, ) -> Result<models::RewVerificationSettings, Error<VerificationControllerGetSettingsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -75,6 +88,17 @@ pub async fn verification_controller_get_settings(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -83,7 +107,7 @@ pub async fn verification_controller_get_settings(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<VerificationControllerGetSettingsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -91,7 +115,8 @@ pub async fn verification_controller_get_settings(configuration: &configuration:
     }
 }
 
-pub async fn verification_controller_put_settings(configuration: &configuration::Configuration, put_settings_dto: models::PutSettingsDto) -> Result<(), Error<VerificationControllerPutSettingsError>> {
+/// Replaces your settings: `vendor` (none, ias, doubleverify, moat; default none), `measurementEnabled`, `viewabilityTarget` (0-1, default 0.7), `brandSafetyCategories` (unknown ids dropped), `blockedDomains` (normalized to bare hosts) and `blockedKeywords` (lowercased tokens), all enforced at serve time. `apiKey` is encrypted at rest; omit it to keep the stored key, send an empty string to clear it.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn verification_controller_put_settings(configuration: &configuration::Configuration, put_settings_dto: models::PutSettingsDto) -> Result<models::RewVerificationSettings, Error<VerificationControllerPutSettingsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -102,6 +127,17 @@ pub async fn verification_controller_put_settings(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&put_settings_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -111,7 +147,7 @@ pub async fn verification_controller_put_settings(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<VerificationControllerPutSettingsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

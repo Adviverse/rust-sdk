@@ -51,7 +51,8 @@ pub enum RegionsControllerUpdateError {
 }
 
 
-pub async fn regions_controller_create(configuration: &configuration::Configuration, create_region_dto: models::CreateRegionDto) -> Result<(), Error<RegionsControllerCreateError>> {
+/// Adds a region from `code` (lowercase slug, unique), `name`, `public_endpoint`, `lat`, `lng`, optional `country_codes` (uppercased), `status` (active, draining, disabled; default active) and `priority` (default 100, lower wins). Invalidates the region cache.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn regions_controller_create(configuration: &configuration::Configuration, create_region_dto: models::CreateRegionDto) -> Result<models::RewRegion, Error<RegionsControllerCreateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -62,6 +63,17 @@ pub async fn regions_controller_create(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_region_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -71,7 +83,7 @@ pub async fn regions_controller_create(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RegionsControllerCreateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -79,7 +91,8 @@ pub async fn regions_controller_create(configuration: &configuration::Configurat
     }
 }
 
-pub async fn regions_controller_health(configuration: &configuration::Configuration, ) -> Result<(), Error<RegionsControllerHealthError>> {
+/// Public. Probes every configured region's engine `/healthz` (1.5s timeout) and reports whether it is up with its indexed campaign and placement counts and version. Unreachable engines report `up: false` with null metrics.  Auth: public, no credentials required.
+pub async fn regions_controller_health(configuration: &configuration::Configuration, ) -> Result<Vec<models::RegionsControllerHealth200ResponseInner>, Error<RegionsControllerHealthError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -98,7 +111,7 @@ pub async fn regions_controller_health(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RegionsControllerHealthError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -106,7 +119,8 @@ pub async fn regions_controller_health(configuration: &configuration::Configurat
     }
 }
 
-pub async fn regions_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<RegionsControllerListError>> {
+/// Public. Returns the active ad-engine regions ordered by priority, served from a 30-second in-memory cache.  Auth: public, no credentials required.
+pub async fn regions_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::RewRegion>, Error<RegionsControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -125,7 +139,7 @@ pub async fn regions_controller_list(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RegionsControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -133,7 +147,8 @@ pub async fn regions_controller_list(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn regions_controller_nearest(configuration: &configuration::Configuration, country: &str, lat: &str, lng: &str) -> Result<(), Error<RegionsControllerNearestError>> {
+/// Public and fail-soft; the SDK calls it before auth to choose an engine. Matches `?country=` (ISO alpha-2) against region country lists, else picks the nearest region to `?lat=&lng=`, else the highest-priority region. Falls back to a built-in default region if none are configured or lookup fails.  Auth: public, no credentials required.
+pub async fn regions_controller_nearest(configuration: &configuration::Configuration, country: &str, lat: &str, lng: &str) -> Result<models::RegionsControllerNearest200Response, Error<RegionsControllerNearestError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -155,7 +170,7 @@ pub async fn regions_controller_nearest(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RegionsControllerNearestError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -163,7 +178,8 @@ pub async fn regions_controller_nearest(configuration: &configuration::Configura
     }
 }
 
-pub async fn regions_controller_update(configuration: &configuration::Configuration, id: &str, update_region_dto: models::UpdateRegionDto) -> Result<(), Error<RegionsControllerUpdateError>> {
+/// Patches `status`, `public_endpoint`, `priority`, `country_codes` or `name` of the region with UUID `id` and invalidates the cache. 404 if the region does not exist.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn regions_controller_update(configuration: &configuration::Configuration, id: &str, update_region_dto: models::UpdateRegionDto) -> Result<models::RewRegion, Error<RegionsControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -174,6 +190,17 @@ pub async fn regions_controller_update(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_region_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -183,7 +210,7 @@ pub async fn regions_controller_update(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<RegionsControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

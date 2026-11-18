@@ -156,7 +156,8 @@ pub enum AuthControllerVerifyError {
 }
 
 
-pub async fn auth_controller_connections(configuration: &configuration::Configuration, ) -> Result<(), Error<AuthControllerConnectionsError>> {
+/// Lists the social sign-in providers connected to the current account, oldest first.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn auth_controller_connections(configuration: &configuration::Configuration, ) -> Result<Vec<models::AuthControllerConnections200ResponseInner>, Error<AuthControllerConnectionsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -167,6 +168,17 @@ pub async fn auth_controller_connections(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -175,7 +187,7 @@ pub async fn auth_controller_connections(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerConnectionsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -183,7 +195,8 @@ pub async fn auth_controller_connections(configuration: &configuration::Configur
     }
 }
 
-pub async fn auth_controller_disconnect(configuration: &configuration::Configuration, provider: &str) -> Result<(), Error<AuthControllerDisconnectError>> {
+/// Removes the connection for `provider` from the current account. Refuses with 400 when the account has no password and this is its only connection, so the user cannot lock themselves out. Unknown providers are a no-op.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn auth_controller_disconnect(configuration: &configuration::Configuration, provider: &str) -> Result<models::AuthControllerResendVerification201Response, Error<AuthControllerDisconnectError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -194,6 +207,17 @@ pub async fn auth_controller_disconnect(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -202,7 +226,7 @@ pub async fn auth_controller_disconnect(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerDisconnectError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -210,7 +234,8 @@ pub async fn auth_controller_disconnect(configuration: &configuration::Configura
     }
 }
 
-pub async fn auth_controller_enable2fa(configuration: &configuration::Configuration, ) -> Result<(), Error<AuthControllerEnable2faError>> {
+/// Verifies `totp` against the secret from the setup step and turns on 2FA, after which login requires a code. Returns 400 `run setup first` if no secret exists, or `invalid code`.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn auth_controller_enable2fa(configuration: &configuration::Configuration, ) -> Result<models::AuthControllerEnable2fa201Response, Error<AuthControllerEnable2faError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -221,6 +246,17 @@ pub async fn auth_controller_enable2fa(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -229,7 +265,7 @@ pub async fn auth_controller_enable2fa(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerEnable2faError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -237,7 +273,8 @@ pub async fn auth_controller_enable2fa(configuration: &configuration::Configurat
     }
 }
 
-pub async fn auth_controller_forgot_password(configuration: &configuration::Configuration, email_dto: models::EmailDto) -> Result<(), Error<AuthControllerForgotPasswordError>> {
+/// Emails a one-hour password reset link to `email` when an account exists. Always returns `{ ok: true }` to avoid account enumeration. Rate-limited per IP.  Auth: public, no credentials required.
+pub async fn auth_controller_forgot_password(configuration: &configuration::Configuration, email_dto: models::EmailDto) -> Result<models::AuthControllerResendVerification201Response, Error<AuthControllerForgotPasswordError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -257,7 +294,7 @@ pub async fn auth_controller_forgot_password(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerForgotPasswordError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -265,6 +302,7 @@ pub async fn auth_controller_forgot_password(configuration: &configuration::Conf
     }
 }
 
+/// Browser redirect target for GitHub. Exchanges `code`, verifies `state`, then 302-redirects to the dashboard: `/settings#sso=connected` after linking, `/login#sso_token=<token>` after login/signup, or `/login#sso_error=github` on any failure. The session token is passed in the URL fragment so it never reaches a server. Callbacks carrying a state issued by the Atlas identity service are forwarded there instead.  Auth: public, no credentials required.
 pub async fn auth_controller_github_callback(configuration: &configuration::Configuration, code: &str, state: &str) -> Result<(), Error<AuthControllerGithubCallbackError>> {
     let local_var_configuration = configuration;
 
@@ -294,7 +332,8 @@ pub async fn auth_controller_github_callback(configuration: &configuration::Conf
     }
 }
 
-pub async fn auth_controller_github_start(configuration: &configuration::Configuration, authorization: &str, oauth_start_dto: models::OauthStartDto) -> Result<(), Error<AuthControllerGithubStartError>> {
+/// Returns the GitHub authorize URL with a signed state carrying the optional signup `type` and, if a bearer token was sent, a \"connect to this account\" intent. POST is used so the session token never appears in a URL. Returns 401 if GitHub SSO is not configured.  Auth: public, no credentials required.
+pub async fn auth_controller_github_start(configuration: &configuration::Configuration, authorization: &str, oauth_start_dto: models::OauthStartDto) -> Result<models::AuthControllerGithubStart201Response, Error<AuthControllerGithubStartError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -315,7 +354,7 @@ pub async fn auth_controller_github_start(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerGithubStartError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -323,7 +362,8 @@ pub async fn auth_controller_github_start(configuration: &configuration::Configu
     }
 }
 
-pub async fn auth_controller_login(configuration: &configuration::Configuration, login_dto: models::LoginDto) -> Result<(), Error<AuthControllerLoginError>> {
+/// Exchanges `email` + `password` for a session bearer token. When 2FA is enabled a `totp` code is required; without one the call fails with 401 `2fa_required`. Emails not found on an account are tried as agency team-member seats, in which case the session is bound to the agency account and `account.member` is set. Returns 401 for bad credentials, banned/suspended accounts, or SSO-only accounts without a password. A Turnstile token is checked when configured; rate-limited per IP.  Auth: public, no credentials required.
+pub async fn auth_controller_login(configuration: &configuration::Configuration, login_dto: models::LoginDto) -> Result<models::AuthSession, Error<AuthControllerLoginError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -343,7 +383,7 @@ pub async fn auth_controller_login(configuration: &configuration::Configuration,
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerLoginError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -351,7 +391,8 @@ pub async fn auth_controller_login(configuration: &configuration::Configuration,
     }
 }
 
-pub async fn auth_controller_logout(configuration: &configuration::Configuration, authorization: &str) -> Result<(), Error<AuthControllerLogoutError>> {
+/// Revokes the session identified by the bearer token in the Authorization header. Always returns `{ ok: true }`.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn auth_controller_logout(configuration: &configuration::Configuration, authorization: &str) -> Result<models::AuthControllerResendVerification201Response, Error<AuthControllerLogoutError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -363,6 +404,17 @@ pub async fn auth_controller_logout(configuration: &configuration::Configuration
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
     local_var_req_builder = local_var_req_builder.header("authorization", authorization.to_string());
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -371,7 +423,7 @@ pub async fn auth_controller_logout(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerLogoutError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -379,7 +431,8 @@ pub async fn auth_controller_logout(configuration: &configuration::Configuration
     }
 }
 
-pub async fn auth_controller_me(configuration: &configuration::Configuration, ) -> Result<(), Error<AuthControllerMeError>> {
+/// Returns the account behind the current session or API key. `roles` is `[\"admin\"]` for admins and `[\"publisher\",\"advertiser\"]` for every other account, since all accounts are dual-sided; `type` is only the signup choice. For agency team-member sessions `email` is the member email and `member` describes the seat role and pixel grant; otherwise `member` is null.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn auth_controller_me(configuration: &configuration::Configuration, ) -> Result<models::AuthMe, Error<AuthControllerMeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -390,6 +443,17 @@ pub async fn auth_controller_me(configuration: &configuration::Configuration, ) 
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -398,7 +462,7 @@ pub async fn auth_controller_me(configuration: &configuration::Configuration, ) 
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerMeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -406,6 +470,7 @@ pub async fn auth_controller_me(configuration: &configuration::Configuration, ) 
     }
 }
 
+/// Browser redirect target for Microsoft. Completes the code flow and 302-redirects to the dashboard with `#sso=connected`, `#sso_token=<token>` or `#sso_error=microsoft`, same as the GitHub callback. Atlas-issued states are forwarded to Atlas.  Auth: public, no credentials required.
 pub async fn auth_controller_microsoft_callback(configuration: &configuration::Configuration, code: &str, state: &str) -> Result<(), Error<AuthControllerMicrosoftCallbackError>> {
     let local_var_configuration = configuration;
 
@@ -435,7 +500,8 @@ pub async fn auth_controller_microsoft_callback(configuration: &configuration::C
     }
 }
 
-pub async fn auth_controller_microsoft_start(configuration: &configuration::Configuration, authorization: &str, oauth_start_dto: models::OauthStartDto) -> Result<(), Error<AuthControllerMicrosoftStartError>> {
+/// Returns the Microsoft (Entra) authorize URL with a signed state, exactly like the GitHub start endpoint. An optional bearer token marks a connect intent; `type` sets the account type for a new signup. Returns 401 if Microsoft SSO is not configured.  Auth: public, no credentials required.
+pub async fn auth_controller_microsoft_start(configuration: &configuration::Configuration, authorization: &str, oauth_start_dto: models::OauthStartDto) -> Result<models::AuthControllerGithubStart201Response, Error<AuthControllerMicrosoftStartError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -456,7 +522,7 @@ pub async fn auth_controller_microsoft_start(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerMicrosoftStartError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -464,7 +530,8 @@ pub async fn auth_controller_microsoft_start(configuration: &configuration::Conf
     }
 }
 
-pub async fn auth_controller_oauth_discord(configuration: &configuration::Configuration, authorization: &str, oauth_discord_dto: models::OauthDiscordDto) -> Result<(), Error<AuthControllerOauthDiscordError>> {
+/// Verifies a single-use RestoreHub widget `token` and resolves the Discord identity. Without a bearer token it logs in the account already connected to that identity, else attaches it to an account with the same provider-verified email, else creates a new passwordless account of `type`. With a valid bearer token the identity is linked to the current account instead and `{ linked: true }` is returned. Returns 400 when the email belongs to an existing account but is not verified by the provider, or no email is shared.  Auth: public, no credentials required.
+pub async fn auth_controller_oauth_discord(configuration: &configuration::Configuration, authorization: &str, oauth_discord_dto: models::OauthDiscordDto) -> Result<models::AuthControllerOauthDiscord201Response, Error<AuthControllerOauthDiscordError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -485,7 +552,7 @@ pub async fn auth_controller_oauth_discord(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerOauthDiscordError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -493,7 +560,8 @@ pub async fn auth_controller_oauth_discord(configuration: &configuration::Config
     }
 }
 
-pub async fn auth_controller_oauth_google(configuration: &configuration::Configuration, authorization: &str, oauth_google_dto: models::OauthGoogleDto) -> Result<(), Error<AuthControllerOauthGoogleError>> {
+/// Validates a Google Identity Services ID token (`credential`) against Google tokeninfo, checking that the audience is the Adviverse client id and the issuer is Google. Login, auto-link and signup behave as for Discord; with a bearer token the Google identity is linked to the current account. Returns 401 `verification_failed` for an invalid token, or when Google SSO is not configured.  Auth: public, no credentials required.
+pub async fn auth_controller_oauth_google(configuration: &configuration::Configuration, authorization: &str, oauth_google_dto: models::OauthGoogleDto) -> Result<models::AuthControllerOauthDiscord201Response, Error<AuthControllerOauthGoogleError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -514,7 +582,7 @@ pub async fn auth_controller_oauth_google(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerOauthGoogleError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -522,7 +590,8 @@ pub async fn auth_controller_oauth_google(configuration: &configuration::Configu
     }
 }
 
-pub async fn auth_controller_resend_verification(configuration: &configuration::Configuration, email_dto: models::EmailDto) -> Result<(), Error<AuthControllerResendVerificationError>> {
+/// Sends a fresh verification link to `email` if an account exists and is not yet verified. Always returns `{ ok: true }` so the response does not reveal whether the email is registered. Rate-limited per IP.  Auth: public, no credentials required.
+pub async fn auth_controller_resend_verification(configuration: &configuration::Configuration, email_dto: models::EmailDto) -> Result<models::AuthControllerResendVerification201Response, Error<AuthControllerResendVerificationError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -542,7 +611,7 @@ pub async fn auth_controller_resend_verification(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerResendVerificationError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -550,7 +619,8 @@ pub async fn auth_controller_resend_verification(configuration: &configuration::
     }
 }
 
-pub async fn auth_controller_reset_password(configuration: &configuration::Configuration, reset_password_dto: models::ResetPasswordDto) -> Result<(), Error<AuthControllerResetPasswordError>> {
+/// Sets a new `password` (min 8 chars) using the single-use reset `token` from the email. On success the token is consumed and every active session of the account is revoked, so the user must log in again. Returns 400 for an invalid or expired token. Rate-limited per IP.  Auth: public, no credentials required.
+pub async fn auth_controller_reset_password(configuration: &configuration::Configuration, reset_password_dto: models::ResetPasswordDto) -> Result<models::AuthControllerResendVerification201Response, Error<AuthControllerResetPasswordError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -570,7 +640,7 @@ pub async fn auth_controller_reset_password(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerResetPasswordError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -578,7 +648,8 @@ pub async fn auth_controller_reset_password(configuration: &configuration::Confi
     }
 }
 
-pub async fn auth_controller_set_password(configuration: &configuration::Configuration, set_password_dto: models::SetPasswordDto) -> Result<(), Error<AuthControllerSetPasswordError>> {
+/// Sets `newPassword` (min 8 chars). If the account already has a password, `currentPassword` is required and must match (400 if missing, 401 if wrong); SSO-only accounts can set a first password without it, which enables email login. Team-member seats get 403. `hadPassword` tells whether this was a change or a first set.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn auth_controller_set_password(configuration: &configuration::Configuration, set_password_dto: models::SetPasswordDto) -> Result<models::AuthControllerSetPassword201Response, Error<AuthControllerSetPasswordError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -589,6 +660,17 @@ pub async fn auth_controller_set_password(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_password_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -598,7 +680,7 @@ pub async fn auth_controller_set_password(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerSetPasswordError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -606,7 +688,8 @@ pub async fn auth_controller_set_password(configuration: &configuration::Configu
     }
 }
 
-pub async fn auth_controller_setup2fa(configuration: &configuration::Configuration, ) -> Result<(), Error<AuthControllerSetup2faError>> {
+/// Generates a new TOTP secret, stores it on the account and returns it with an `otpauth://` URI for authenticator apps. 2FA is not active until confirmed with the enable endpoint. Calling again replaces any unconfirmed secret.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn auth_controller_setup2fa(configuration: &configuration::Configuration, ) -> Result<models::AuthControllerSetup2fa201Response, Error<AuthControllerSetup2faError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -617,6 +700,17 @@ pub async fn auth_controller_setup2fa(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -625,7 +719,7 @@ pub async fn auth_controller_setup2fa(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerSetup2faError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -633,7 +727,8 @@ pub async fn auth_controller_setup2fa(configuration: &configuration::Configurati
     }
 }
 
-pub async fn auth_controller_signup(configuration: &configuration::Configuration, signup_dto: models::SignupDto) -> Result<(), Error<AuthControllerSignupError>> {
+/// Registers a new account from `email` and `password` (min 8 chars), with optional `type` (advertiser|publisher, default advertiser; only the default landing side, every account is dual-sided), `companyName`, `country` and `referredByCode`. A Turnstile token (`turnstileToken`) is checked first when Turnstile is configured. Creates a zero balance, records the referral if the code matches, emails a 48-hour verification link and returns a session token so the client is logged in immediately. The account starts in `pending` status until the email is verified. Returns 400 if the email is already registered.  Auth: public, no credentials required.
+pub async fn auth_controller_signup(configuration: &configuration::Configuration, signup_dto: models::SignupDto) -> Result<models::AuthControllerSignup201Response, Error<AuthControllerSignupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -653,7 +748,7 @@ pub async fn auth_controller_signup(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerSignupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -661,7 +756,8 @@ pub async fn auth_controller_signup(configuration: &configuration::Configuration
     }
 }
 
-pub async fn auth_controller_sso_config(configuration: &configuration::Configuration, ) -> Result<(), Error<AuthControllerSsoConfigError>> {
+/// Returns the public settings the login page needs to render SSO buttons and the Turnstile widget: the Google client id (or null), whether GitHub and Microsoft SSO are configured, and the Turnstile site key (or null). No secrets are returned.  Auth: public, no credentials required.
+pub async fn auth_controller_sso_config(configuration: &configuration::Configuration, ) -> Result<models::AuthControllerSsoConfig200Response, Error<AuthControllerSsoConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -680,7 +776,7 @@ pub async fn auth_controller_sso_config(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerSsoConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -688,7 +784,8 @@ pub async fn auth_controller_sso_config(configuration: &configuration::Configura
     }
 }
 
-pub async fn auth_controller_verify(configuration: &configuration::Configuration, ) -> Result<(), Error<AuthControllerVerifyError>> {
+/// Consumes the single-use `token` from the verification email. Marks the account email as verified and moves a `pending` account to `active`. Returns 400 if the token is unknown, already used or expired (tokens live 48 hours).  Auth: public, no credentials required.
+pub async fn auth_controller_verify(configuration: &configuration::Configuration, ) -> Result<models::AuthControllerVerify201Response, Error<AuthControllerVerifyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -707,7 +804,7 @@ pub async fn auth_controller_verify(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AuthControllerVerifyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

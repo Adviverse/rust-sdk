@@ -443,7 +443,8 @@ pub enum AdvertiserControllerUpsertConversionConfigError {
 }
 
 
-pub async fn advertiser_controller_add_audience_members(configuration: &configuration::Configuration, id: &str, audience_members_dto: models::AudienceMembersDto) -> Result<(), Error<AdvertiserControllerAddAudienceMembersError>> {
+/// Adds the strings in `hashes` (user id hashes) to the audience's member set; empty or non-string entries are skipped. Returns the number of accepted entries and the resulting set size. Responds 404/403 when the audience is missing or not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_add_audience_members(configuration: &configuration::Configuration, id: &str, audience_members_dto: models::AudienceMembersDto) -> Result<models::AdvertiserControllerAddAudienceMembers201Response, Error<AdvertiserControllerAddAudienceMembersError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -454,6 +455,17 @@ pub async fn advertiser_controller_add_audience_members(configuration: &configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&audience_members_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -463,7 +475,7 @@ pub async fn advertiser_controller_add_audience_members(configuration: &configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerAddAudienceMembersError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -471,7 +483,8 @@ pub async fn advertiser_controller_add_audience_members(configuration: &configur
     }
 }
 
-pub async fn advertiser_controller_add_component(configuration: &configuration::Configuration, id: &str, add_component_dto: models::AddComponentDto) -> Result<(), Error<AdvertiserControllerAddComponentError>> {
+/// Adds one `{ slot, value }` component to the component pool of the creative's campaign. `slot` is headline, body, image, cta, logo or bg_color; `value` must be non-empty and image/logo values are SSRF-checked (400). The creative must be owned and authored under a campaign (404 otherwise). Republishes the serving index.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_add_component(configuration: &configuration::Configuration, id: &str, add_component_dto: models::AddComponentDto) -> Result<models::AdvertiserControllerAddComponent201Response, Error<AdvertiserControllerAddComponentError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -482,6 +495,17 @@ pub async fn advertiser_controller_add_component(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&add_component_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -491,7 +515,7 @@ pub async fn advertiser_controller_add_component(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerAddComponentError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -499,7 +523,8 @@ pub async fn advertiser_controller_add_component(configuration: &configuration::
     }
 }
 
-pub async fn advertiser_controller_attach_creative(configuration: &configuration::Configuration, id: &str, attach_creative_dto: models::AttachCreativeDto) -> Result<(), Error<AdvertiserControllerAttachCreativeError>> {
+/// Links the creative to `campaignId` with an optional rotation `weight` (minimum 1, default 1). Attaching again updates the weight and re-enables the link. Both the creative (404) and campaign (404/403) must be owned. Republishes the serving index.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_attach_creative(configuration: &configuration::Configuration, id: &str, attach_creative_dto: models::AttachCreativeDto) -> Result<models::AdvertiserControllerAttachCreative201Response, Error<AdvertiserControllerAttachCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -510,6 +535,17 @@ pub async fn advertiser_controller_attach_creative(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&attach_creative_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -519,7 +555,7 @@ pub async fn advertiser_controller_attach_creative(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerAttachCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -527,7 +563,8 @@ pub async fn advertiser_controller_attach_creative(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_audience_pixel(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerAudiencePixelError>> {
+/// Returns the tracking URL plus ready-to-paste `<img>` and `<script>` snippets that add the visiting user to this audience via /v1/track/audience. Replace the USER_ID placeholder (the script uses window.ADNET_UID). 404/403 when the audience is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_audience_pixel(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvertiserControllerAudiencePixel200Response, Error<AdvertiserControllerAudiencePixelError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -538,6 +575,17 @@ pub async fn advertiser_controller_audience_pixel(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -546,7 +594,7 @@ pub async fn advertiser_controller_audience_pixel(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerAudiencePixelError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -554,7 +602,8 @@ pub async fn advertiser_controller_audience_pixel(configuration: &configuration:
     }
 }
 
-pub async fn advertiser_controller_audience_suggestions(configuration: &configuration::Configuration, days: &str) -> Result<(), Error<AdvertiserControllerAudienceSuggestionsError>> {
+/// Inspects the account's pixel events over the last `days` (1-180, default 30) and returns ready-to-create rule audiences such as all visitors, engaged visitors, cart and checkout abandoners, purchasers, high-value buyers, unconverted leads and viewers of the top 5 products. Each suggestion has a `rule` to pass to POST /audiences and an `estReach` upper bound. `eventInventory` maps each event name to its distinct users.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_audience_suggestions(configuration: &configuration::Configuration, days: &str) -> Result<models::AdvertiserControllerAudienceSuggestions200Response, Error<AdvertiserControllerAudienceSuggestionsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -566,6 +615,17 @@ pub async fn advertiser_controller_audience_suggestions(configuration: &configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -574,7 +634,7 @@ pub async fn advertiser_controller_audience_suggestions(configuration: &configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerAudienceSuggestionsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -582,7 +642,8 @@ pub async fn advertiser_controller_audience_suggestions(configuration: &configur
     }
 }
 
-pub async fn advertiser_controller_create(configuration: &configuration::Configuration, create_campaign_dto: models::CreateCampaignDto) -> Result<(), Error<AdvertiserControllerCreateError>> {
+/// Creates a campaign in `draft` status together with its targeting row and, if `conversion` is given, a conversion config. Key body fields: `name`, `format`, `pricingModel`, `bidAmount`, budgets, `pacing`, schedule, `targeting`, `bidStrategy`/`targetCpa`/`targetRoas`, `houseAd`, `priorityTier`, `groupId`. The currency is always taken from the advertiser's account (a client-sent `currency` is ignored), `terminal` format is forced to CPM, and `groupId` is silently dropped unless the advertiser owns that group. A house ad with no placement whitelist is confined to the owner's own active placements. Submit the draft for review to start serving.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_create(configuration: &configuration::Configuration, create_campaign_dto: models::CreateCampaignDto) -> Result<models::AdvCampaign, Error<AdvertiserControllerCreateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -593,6 +654,17 @@ pub async fn advertiser_controller_create(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_campaign_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -602,7 +674,7 @@ pub async fn advertiser_controller_create(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -610,7 +682,8 @@ pub async fn advertiser_controller_create(configuration: &configuration::Configu
     }
 }
 
-pub async fn advertiser_controller_create_audience(configuration: &configuration::Configuration, create_audience_dto: models::CreateAudienceDto) -> Result<(), Error<AdvertiserControllerCreateAudienceError>> {
+/// Creates an audience. Passing a `rule` makes it an event-rule audience (type `rule`) built from pixel events: the rule is bounds-checked (400), membership is resolved immediately in the background, and the resolver keeps it fresh. Without a rule, `type` selects uploaded, lookalike or retargeting (the default). `pixelId` scopes the audience to one pixel.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_create_audience(configuration: &configuration::Configuration, create_audience_dto: models::CreateAudienceDto) -> Result<models::AdvertiserControllerCreateAudience201Response, Error<AdvertiserControllerCreateAudienceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -621,6 +694,17 @@ pub async fn advertiser_controller_create_audience(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_audience_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -630,7 +714,7 @@ pub async fn advertiser_controller_create_audience(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreateAudienceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -638,7 +722,8 @@ pub async fn advertiser_controller_create_audience(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_create_creative(configuration: &configuration::Configuration, create_creative_dto: models::CreateCreativeDto) -> Result<(), Error<AdvertiserControllerCreateCreativeError>> {
+/// Creates a creative in the library; pass `campaignId` to also author it directly under a campaign (404/403 if that campaign is not owned). Every URL field is SSRF-checked (400 for internal destinations) and video/VAST fields are validated (`duration` 1-600, `skipOffsetSec`, https `vastTagUrl`/`vpaidUrl`, `companions`); `carouselItems` is capped at 20. Marketplace creatives start `pending` and enter moderation; creatives under a house-ad campaign are approved immediately. A malware scan always runs, video assets are queued for HLS transcoding, and a VAST tag without `duration` is probed in the background.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_create_creative(configuration: &configuration::Configuration, create_creative_dto: models::CreateCreativeDto) -> Result<models::AdvCreative, Error<AdvertiserControllerCreateCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -649,6 +734,17 @@ pub async fn advertiser_controller_create_creative(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_creative_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -658,7 +754,7 @@ pub async fn advertiser_controller_create_creative(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreateCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -666,7 +762,8 @@ pub async fn advertiser_controller_create_creative(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_create_destination(configuration: &configuration::Configuration, id: &str, create_destination_dto: models::CreateDestinationDto) -> Result<(), Error<AdvertiserControllerCreateDestinationError>> {
+/// Creates a destination of `type` webhook (default; HMAC-signed, SSRF-guarded HTTPS push), meta_custom_audience or google_customer_match, with adapter settings and credentials in `config`. Responds 404 when the audience is not owned. Active destinations are synced on a schedule; PII destinations receive only hashed email/phone, never raw PII.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_create_destination(configuration: &configuration::Configuration, id: &str, create_destination_dto: models::CreateDestinationDto) -> Result<models::AdvertiserControllerCreateAudience201Response, Error<AdvertiserControllerCreateDestinationError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -677,6 +774,17 @@ pub async fn advertiser_controller_create_destination(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_destination_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -686,7 +794,7 @@ pub async fn advertiser_controller_create_destination(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreateDestinationError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -694,7 +802,8 @@ pub async fn advertiser_controller_create_destination(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_create_feed(configuration: &configuration::Configuration, create_feed_dto: models::CreateFeedDto) -> Result<(), Error<AdvertiserControllerCreateFeedError>> {
+/// Registers a product feed for dynamic product ads. Body: `name`, `url` (http/https), `format` (csv, xml or google_merchant) and optional `scheduleCron`. Responds 400 for a missing name, a non-http URL or an unknown format. The feed is not fetched until a fetch is triggered or the scheduler runs.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_create_feed(configuration: &configuration::Configuration, create_feed_dto: models::CreateFeedDto) -> Result<models::AdvProductFeed, Error<AdvertiserControllerCreateFeedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -705,6 +814,17 @@ pub async fn advertiser_controller_create_feed(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_feed_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -714,7 +834,7 @@ pub async fn advertiser_controller_create_feed(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreateFeedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -722,7 +842,8 @@ pub async fn advertiser_controller_create_feed(configuration: &configuration::Co
     }
 }
 
-pub async fn advertiser_controller_create_group(configuration: &configuration::Configuration, campaign_group_dto: models::CampaignGroupDto) -> Result<(), Error<AdvertiserControllerCreateGroupError>> {
+/// Creates a campaign group with `name` and an optional `objective`. New groups start with status `active`. Ad sets are attached to a group by passing `groupId` when creating a campaign.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_create_group(configuration: &configuration::Configuration, campaign_group_dto: models::CampaignGroupDto) -> Result<models::AdvCampaignGroup, Error<AdvertiserControllerCreateGroupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -733,6 +854,17 @@ pub async fn advertiser_controller_create_group(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&campaign_group_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -742,7 +874,7 @@ pub async fn advertiser_controller_create_group(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreateGroupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -750,7 +882,8 @@ pub async fn advertiser_controller_create_group(configuration: &configuration::C
     }
 }
 
-pub async fn advertiser_controller_create_promote(configuration: &configuration::Configuration, create_promote_campaign_dto: models::CreatePromoteCampaignDto) -> Result<(), Error<AdvertiserControllerCreatePromoteError>> {
+/// Creates a draft campaign that promotes catalog items. `itemSelector` must be exactly one of `{ item_ids }`, `{ keywords }` or `{ all: true }`. `pricingModel` is cpc (default) or cpa; cpc and flat cpa need `bidAmount` > 0, while cpa with `cpaMode: percent` needs `cpaPercent` in (0, 1]. Also accepts budgets, `pacing` (even|asap), `minOrderValue` (CPA fraud floor), `currency`, schedule and `targeting`. Validation failures return 400. The created row is returned with NUMERIC columns as strings.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_create_promote(configuration: &configuration::Configuration, create_promote_campaign_dto: models::CreatePromoteCampaignDto) -> Result<models::AdvPromoteCampaign, Error<AdvertiserControllerCreatePromoteError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -761,6 +894,17 @@ pub async fn advertiser_controller_create_promote(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_promote_campaign_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -770,7 +914,7 @@ pub async fn advertiser_controller_create_promote(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreatePromoteError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -778,7 +922,8 @@ pub async fn advertiser_controller_create_promote(configuration: &configuration:
     }
 }
 
-pub async fn advertiser_controller_creative_assignments(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerCreativeAssignmentsError>> {
+/// Returns the non-deleted campaigns this library creative is attached to, with the attachment `weight` and `enabled` flag. Creatives authored directly under a campaign without an attachment do not appear. 404 when the creative is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_creative_assignments(configuration: &configuration::Configuration, id: &str) -> Result<Vec<models::AdvCreativeAssignment>, Error<AdvertiserControllerCreativeAssignmentsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -789,6 +934,17 @@ pub async fn advertiser_controller_creative_assignments(configuration: &configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -797,7 +953,7 @@ pub async fn advertiser_controller_creative_assignments(configuration: &configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerCreativeAssignmentsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -805,7 +961,8 @@ pub async fn advertiser_controller_creative_assignments(configuration: &configur
     }
 }
 
-pub async fn advertiser_controller_detach_creative(configuration: &configuration::Configuration, id: &str, attach_creative_dto: models::AttachCreativeDto) -> Result<(), Error<AdvertiserControllerDetachCreativeError>> {
+/// Removes the link between the creative and `campaignId` and republishes the serving index. Succeeds even if no link existed. 404 when the creative is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_detach_creative(configuration: &configuration::Configuration, id: &str, attach_creative_dto: models::AttachCreativeDto) -> Result<models::AdvertiserControllerDetachCreative201Response, Error<AdvertiserControllerDetachCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -816,6 +973,17 @@ pub async fn advertiser_controller_detach_creative(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&attach_creative_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -825,7 +993,7 @@ pub async fn advertiser_controller_detach_creative(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerDetachCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -833,7 +1001,8 @@ pub async fn advertiser_controller_detach_creative(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_estimate_audience(configuration: &configuration::Configuration, create_audience_dto: models::CreateAudienceDto) -> Result<(), Error<AdvertiserControllerEstimateAudienceError>> {
+/// Counts the distinct users matching `rule` (optionally limited to `pixelId`) without creating an audience. The rule is bounds-checked (400). A query failure returns 0. Rate-limited to 20 calls per throttle window because each call runs a ClickHouse aggregation.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_estimate_audience(configuration: &configuration::Configuration, create_audience_dto: models::CreateAudienceDto) -> Result<models::AdvertiserControllerEstimateAudience201Response, Error<AdvertiserControllerEstimateAudienceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -844,6 +1013,17 @@ pub async fn advertiser_controller_estimate_audience(configuration: &configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_audience_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -853,7 +1033,7 @@ pub async fn advertiser_controller_estimate_audience(configuration: &configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerEstimateAudienceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -861,7 +1041,8 @@ pub async fn advertiser_controller_estimate_audience(configuration: &configurati
     }
 }
 
-pub async fn advertiser_controller_fetch_feed(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerFetchFeedError>> {
+/// Downloads (SSRF-guarded) and parses the feed immediately and upserts its products, returning the parsed and upserted counts. Rate-limited to 5 calls per throttle window. Responds 404 when the feed does not exist and 403 when it belongs to another advertiser.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_fetch_feed(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvertiserControllerFetchFeed201Response, Error<AdvertiserControllerFetchFeedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -872,6 +1053,17 @@ pub async fn advertiser_controller_fetch_feed(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -880,7 +1072,7 @@ pub async fn advertiser_controller_fetch_feed(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerFetchFeedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -888,7 +1080,8 @@ pub async fn advertiser_controller_fetch_feed(configuration: &configuration::Con
     }
 }
 
-pub async fn advertiser_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerGetError>> {
+/// Returns the campaign row plus its raw `targeting` row and the creatives authored directly under it (library-attached creatives are listed by GET /campaigns/{id}/creatives). Responds 404 when the campaign does not exist or is deleted, and 403 when it belongs to another advertiser.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvCampaignDetail, Error<AdvertiserControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -899,6 +1092,17 @@ pub async fn advertiser_controller_get(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -907,7 +1111,7 @@ pub async fn advertiser_controller_get(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -915,7 +1119,8 @@ pub async fn advertiser_controller_get(configuration: &configuration::Configurat
     }
 }
 
-pub async fn advertiser_controller_get_conversion_config(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerGetConversionConfigError>> {
+/// Returns the conversion-tracking config for the campaign (event type, payout, postback URL, dedupe and attribution windows, CPA mode). The body is empty (null) when none has been set. Responds 404 when the campaign is missing and 403 when not owned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_get_conversion_config(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvConversionConfig, Error<AdvertiserControllerGetConversionConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -926,6 +1131,17 @@ pub async fn advertiser_controller_get_conversion_config(configuration: &configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -934,7 +1150,7 @@ pub async fn advertiser_controller_get_conversion_config(configuration: &configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerGetConversionConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -942,7 +1158,8 @@ pub async fn advertiser_controller_get_conversion_config(configuration: &configu
     }
 }
 
-pub async fn advertiser_controller_get_creative(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerGetCreativeError>> {
+/// Returns one creative owned by the advertiser. Responds 404 when it does not exist, is deleted, or belongs to another advertiser.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_get_creative(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvCreative, Error<AdvertiserControllerGetCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -953,6 +1170,17 @@ pub async fn advertiser_controller_get_creative(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -961,7 +1189,7 @@ pub async fn advertiser_controller_get_creative(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerGetCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -969,7 +1197,8 @@ pub async fn advertiser_controller_get_creative(configuration: &configuration::C
     }
 }
 
-pub async fn advertiser_controller_get_group(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerGetGroupError>> {
+/// Returns one campaign group row. Responds 404 when the group does not exist, is deleted, or belongs to another advertiser. Ad sets are not nested here; the list endpoint includes them.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_get_group(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvCampaignGroup, Error<AdvertiserControllerGetGroupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -980,6 +1209,17 @@ pub async fn advertiser_controller_get_group(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -988,7 +1228,7 @@ pub async fn advertiser_controller_get_group(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerGetGroupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -996,7 +1236,8 @@ pub async fn advertiser_controller_get_group(configuration: &configuration::Conf
     }
 }
 
-pub async fn advertiser_controller_get_targeting(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerGetTargetingError>> {
+/// Returns the campaign's targeting normalized to the camelCase shape accepted by create/update. Absent fields come back as empty arrays (or null for `osVersionMin` and `frequencyCap`). `dayparting` is a 168-element array indexed weekday*24+hour (Sunday=0); empty means all hours. 404/403 as for GET campaign.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_get_targeting(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvTargeting, Error<AdvertiserControllerGetTargetingError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1007,6 +1248,17 @@ pub async fn advertiser_controller_get_targeting(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1015,7 +1267,7 @@ pub async fn advertiser_controller_get_targeting(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerGetTargetingError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1023,7 +1275,8 @@ pub async fn advertiser_controller_get_targeting(configuration: &configuration::
     }
 }
 
-pub async fn advertiser_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListError>> {
+/// Returns the advertiser's non-deleted `campaigns` rows (the UI \"Ad set\", the real targeting and serving unit), newest first. Pagination is opt-in: pass `limit` (clamped to 1-500) and `offset`; without `limit` the full set is returned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvCampaign>, Error<AdvertiserControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1034,6 +1287,17 @@ pub async fn advertiser_controller_list(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1042,7 +1306,7 @@ pub async fn advertiser_controller_list(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1050,7 +1314,8 @@ pub async fn advertiser_controller_list(configuration: &configuration::Configura
     }
 }
 
-pub async fn advertiser_controller_list_all_creatives(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListAllCreativesError>> {
+/// Returns every non-deleted creative owned by the advertiser, independent of campaigns, with `campaign_count` (number of library attachments). Used by Creative Studio.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_all_creatives(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvLibraryCreative>, Error<AdvertiserControllerListAllCreativesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1061,6 +1326,17 @@ pub async fn advertiser_controller_list_all_creatives(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1069,7 +1345,7 @@ pub async fn advertiser_controller_list_all_creatives(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListAllCreativesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1077,7 +1353,8 @@ pub async fn advertiser_controller_list_all_creatives(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_list_audiences(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListAudiencesError>> {
+/// Returns the account's audiences, newest first, with the live member count read from the serving set. A team member scoped to specific pixels only sees audiences tied to those pixels.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_audiences(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvAudience>, Error<AdvertiserControllerListAudiencesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1088,6 +1365,17 @@ pub async fn advertiser_controller_list_audiences(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1096,7 +1384,7 @@ pub async fn advertiser_controller_list_audiences(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListAudiencesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1104,7 +1392,8 @@ pub async fn advertiser_controller_list_audiences(configuration: &configuration:
     }
 }
 
-pub async fn advertiser_controller_list_catalog(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListCatalogError>> {
+/// Returns the advertiser's non-deleted catalog items, most recently updated first.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_catalog(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvCatalogItem>, Error<AdvertiserControllerListCatalogError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1115,6 +1404,17 @@ pub async fn advertiser_controller_list_catalog(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1123,7 +1423,7 @@ pub async fn advertiser_controller_list_catalog(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListCatalogError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1131,7 +1431,8 @@ pub async fn advertiser_controller_list_catalog(configuration: &configuration::C
     }
 }
 
-pub async fn advertiser_controller_list_catalog_feeds(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListCatalogFeedsError>> {
+/// Returns the advertiser's non-deleted catalog feeds, newest first, with the last sync time and last error.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_catalog_feeds(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvCatalogFeed>, Error<AdvertiserControllerListCatalogFeedsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1142,6 +1443,17 @@ pub async fn advertiser_controller_list_catalog_feeds(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1150,7 +1462,7 @@ pub async fn advertiser_controller_list_catalog_feeds(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListCatalogFeedsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1158,7 +1470,8 @@ pub async fn advertiser_controller_list_catalog_feeds(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_list_components(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerListComponentsError>> {
+/// Returns the components in the creative's campaign pool plus account-wide components (no campaign), ordered by slot. Each row includes bandit impressions/clicks and the derived `ctr` (0 with no impressions). 404 when the creative is not owned or has no campaign.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_components(configuration: &configuration::Configuration, id: &str) -> Result<Vec<models::AdvCreativeComponent>, Error<AdvertiserControllerListComponentsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1169,6 +1482,17 @@ pub async fn advertiser_controller_list_components(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1177,7 +1501,7 @@ pub async fn advertiser_controller_list_components(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListComponentsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1185,7 +1509,8 @@ pub async fn advertiser_controller_list_components(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_list_creatives(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerListCreativesError>> {
+/// Returns creatives authored directly under the campaign plus library creatives attached to it, newest first. Each row adds `effective_weight` (attachment weight, else the creative weight) and `attached`. Returns an empty list for a campaign the advertiser does not own.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_creatives(configuration: &configuration::Configuration, id: &str) -> Result<Vec<models::AdvCampaignCreative>, Error<AdvertiserControllerListCreativesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1196,6 +1521,17 @@ pub async fn advertiser_controller_list_creatives(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1204,7 +1540,7 @@ pub async fn advertiser_controller_list_creatives(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListCreativesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1212,7 +1548,8 @@ pub async fn advertiser_controller_list_creatives(configuration: &configuration:
     }
 }
 
-pub async fn advertiser_controller_list_destinations(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerListDestinationsError>> {
+/// Returns the destinations that push this audience's members to external systems, newest first. Secrets and tokens in `config` are redacted. Returns an empty list for an audience the account does not own.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_destinations(configuration: &configuration::Configuration, id: &str) -> Result<Vec<models::AdvAudienceDestination>, Error<AdvertiserControllerListDestinationsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1223,6 +1560,17 @@ pub async fn advertiser_controller_list_destinations(configuration: &configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1231,7 +1579,7 @@ pub async fn advertiser_controller_list_destinations(configuration: &configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListDestinationsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1239,7 +1587,8 @@ pub async fn advertiser_controller_list_destinations(configuration: &configurati
     }
 }
 
-pub async fn advertiser_controller_list_feed_products(configuration: &configuration::Configuration, id: &str, limit: &str, offset: &str) -> Result<(), Error<AdvertiserControllerListFeedProductsError>> {
+/// Returns products from the feed, most recently updated first. Query `limit` (1-500, default 50) and `offset` (default 0). Responds 404/403 when the feed is missing or not owned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_feed_products(configuration: &configuration::Configuration, id: &str, limit: &str, offset: &str) -> Result<models::AdvertiserControllerListFeedProducts200Response, Error<AdvertiserControllerListFeedProductsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1252,6 +1601,17 @@ pub async fn advertiser_controller_list_feed_products(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1260,7 +1620,7 @@ pub async fn advertiser_controller_list_feed_products(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListFeedProductsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1268,7 +1628,8 @@ pub async fn advertiser_controller_list_feed_products(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_list_feeds(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListFeedsError>> {
+/// Returns the advertiser's non-deleted product feeds, newest first, with their fetch schedule, last fetch time and status.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_feeds(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvProductFeed>, Error<AdvertiserControllerListFeedsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1279,6 +1640,17 @@ pub async fn advertiser_controller_list_feeds(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1287,7 +1659,7 @@ pub async fn advertiser_controller_list_feeds(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListFeedsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1295,7 +1667,8 @@ pub async fn advertiser_controller_list_feeds(configuration: &configuration::Con
     }
 }
 
-pub async fn advertiser_controller_list_groups(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListGroupsError>> {
+/// Returns every non-deleted campaign group (the UI \"Campaign\") owned by the advertiser, newest first. Each group carries a spend rollup (`spent_total`, summed over its live ad sets) and an `adSets` array with a compact summary of each ad set (`campaigns` row) under it. Ad sets with no group are not included here; use GET /v1/advertiser/campaigns for those.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_groups(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvCampaignGroupWithAdSets>, Error<AdvertiserControllerListGroupsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1306,6 +1679,17 @@ pub async fn advertiser_controller_list_groups(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1314,7 +1698,7 @@ pub async fn advertiser_controller_list_groups(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListGroupsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1322,7 +1706,8 @@ pub async fn advertiser_controller_list_groups(configuration: &configuration::Co
     }
 }
 
-pub async fn advertiser_controller_list_promote(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerListPromoteError>> {
+/// Returns the advertiser's non-deleted promote campaigns, newest first, with money fields as numbers.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_list_promote(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdvPromoteCampaign>, Error<AdvertiserControllerListPromoteError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1333,6 +1718,17 @@ pub async fn advertiser_controller_list_promote(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1341,7 +1737,7 @@ pub async fn advertiser_controller_list_promote(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerListPromoteError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1349,7 +1745,8 @@ pub async fn advertiser_controller_list_promote(configuration: &configuration::C
     }
 }
 
-pub async fn advertiser_controller_lookalike_audience(configuration: &configuration::Configuration, id: &str, lookalike_dto: models::LookalikeDto) -> Result<(), Error<AdvertiserControllerLookalikeAudienceError>> {
+/// Builds a new `lookalike` audience from the seed audience using a profile heuristic, not a trained model: it finds the dominant geo/device of the seed's recent impressions (falling back to the network-wide profile) and selects other recent users with that profile, excluding seed members. `size` is capped by LOOKALIKE_MAX (default 50,000). The result can be empty. 404/403 when the seed is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_lookalike_audience(configuration: &configuration::Configuration, id: &str, lookalike_dto: models::LookalikeDto) -> Result<models::AdvertiserControllerLookalikeAudience201Response, Error<AdvertiserControllerLookalikeAudienceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1360,6 +1757,17 @@ pub async fn advertiser_controller_lookalike_audience(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&lookalike_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1369,7 +1777,7 @@ pub async fn advertiser_controller_lookalike_audience(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerLookalikeAudienceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1377,7 +1785,8 @@ pub async fn advertiser_controller_lookalike_audience(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_modeled_lookalike(configuration: &configuration::Configuration, modeled_lookalike_dto: models::ModeledLookalikeDto) -> Result<(), Error<AdvertiserControllerModeledLookalikeError>> {
+/// Fits a model of the seed audience's distinctive first-party pixel features against the account's background audience, scores recent pixel-active users (excluding seed members and opt-outs) and creates a new lookalike audience. Body: `seedAudienceId`, optional `size` and `minScore` (0-1). Responds 400 when the seed or the output is below the k-anonymity floor, and 404/403 when the seed is not owned. The audience is rebuilt periodically.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_modeled_lookalike(configuration: &configuration::Configuration, modeled_lookalike_dto: models::ModeledLookalikeDto) -> Result<models::AdvertiserControllerModeledLookalike201Response, Error<AdvertiserControllerModeledLookalikeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1388,6 +1797,17 @@ pub async fn advertiser_controller_modeled_lookalike(configuration: &configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&modeled_lookalike_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1397,7 +1817,7 @@ pub async fn advertiser_controller_modeled_lookalike(configuration: &configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerModeledLookalikeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1405,7 +1825,8 @@ pub async fn advertiser_controller_modeled_lookalike(configuration: &configurati
     }
 }
 
-pub async fn advertiser_controller_modeled_lookalike_preview(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerModeledLookalikePreviewError>> {
+/// Returns the seed and background sizes, whether the seed passes the k-anonymity gate (`eligible`) and the most distinctive features, without creating an audience. When ineligible, `note` explains why and `topFeatures` is empty. 404/403 when the seed is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_modeled_lookalike_preview(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvertiserControllerModeledLookalikePreview200Response, Error<AdvertiserControllerModeledLookalikePreviewError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1416,6 +1837,17 @@ pub async fn advertiser_controller_modeled_lookalike_preview(configuration: &con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1424,7 +1856,7 @@ pub async fn advertiser_controller_modeled_lookalike_preview(configuration: &con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerModeledLookalikePreviewError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1432,7 +1864,8 @@ pub async fn advertiser_controller_modeled_lookalike_preview(configuration: &con
     }
 }
 
-pub async fn advertiser_controller_promote_status(configuration: &configuration::Configuration, id: &str, set_promote_status_dto: models::SetPromoteStatusDto) -> Result<(), Error<AdvertiserControllerPromoteStatusError>> {
+/// Sets `status` to active or paused and republishes the serving index so the engine adds or removes it from sponsored-product auctions. 404/403 when missing or not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_promote_status(configuration: &configuration::Configuration, id: &str, set_promote_status_dto: models::SetPromoteStatusDto) -> Result<models::AdvStatusResult, Error<AdvertiserControllerPromoteStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1443,6 +1876,17 @@ pub async fn advertiser_controller_promote_status(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_promote_status_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1452,7 +1896,7 @@ pub async fn advertiser_controller_promote_status(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerPromoteStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1460,7 +1904,8 @@ pub async fn advertiser_controller_promote_status(configuration: &configuration:
     }
 }
 
-pub async fn advertiser_controller_reach(configuration: &configuration::Configuration, reach_estimate_dto: models::ReachEstimateDto) -> Result<(), Error<AdvertiserControllerReachError>> {
+/// Estimates available daily impressions as the average daily ad-request volume over the last 7 days, optionally filtered by `geoInclude` (country codes) and `deviceTypes`. The `format` field is accepted but not used in the estimate. If ClickHouse has no usable history the estimate is 0 with a `note`.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_reach(configuration: &configuration::Configuration, reach_estimate_dto: models::ReachEstimateDto) -> Result<models::AdvertiserControllerReach201Response, Error<AdvertiserControllerReachError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1471,6 +1916,17 @@ pub async fn advertiser_controller_reach(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&reach_estimate_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1480,7 +1936,7 @@ pub async fn advertiser_controller_reach(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerReachError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1488,7 +1944,8 @@ pub async fn advertiser_controller_reach(configuration: &configuration::Configur
     }
 }
 
-pub async fn advertiser_controller_register_catalog_feed(configuration: &configuration::Configuration, register_catalog_feed_dto: models::RegisterCatalogFeedDto) -> Result<(), Error<AdvertiserControllerRegisterCatalogFeedError>> {
+/// Registers a hosted JSON or CSV catalog at `feedUrl` (http/https; 400 otherwise) that a background job re-fetches every `intervalMinutes` (minimum 15, default 360) into the catalog. Registering a URL that is already registered updates its interval and reactivates it instead of creating a duplicate.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_register_catalog_feed(configuration: &configuration::Configuration, register_catalog_feed_dto: models::RegisterCatalogFeedDto) -> Result<models::AdvCatalogFeed, Error<AdvertiserControllerRegisterCatalogFeedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1499,6 +1956,17 @@ pub async fn advertiser_controller_register_catalog_feed(configuration: &configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&register_catalog_feed_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1508,7 +1976,7 @@ pub async fn advertiser_controller_register_catalog_feed(configuration: &configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRegisterCatalogFeedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1516,7 +1984,8 @@ pub async fn advertiser_controller_register_catalog_feed(configuration: &configu
     }
 }
 
-pub async fn advertiser_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerRemoveError>> {
+/// Soft-deletes the campaign and republishes the serving index so it stops serving immediately. Historical spend and stats remain available for reporting. Responds 404 when missing and 403 when not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvDeleted, Error<AdvertiserControllerRemoveError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1527,6 +1996,17 @@ pub async fn advertiser_controller_remove(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1535,7 +2015,7 @@ pub async fn advertiser_controller_remove(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRemoveError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1543,7 +2023,8 @@ pub async fn advertiser_controller_remove(configuration: &configuration::Configu
     }
 }
 
-pub async fn advertiser_controller_remove_audience(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerRemoveAudienceError>> {
+/// Permanently deletes the audience row and its member set, so targeting that references it stops matching. Responds 404/403 when missing or not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_remove_audience(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvDeleted, Error<AdvertiserControllerRemoveAudienceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1554,6 +2035,17 @@ pub async fn advertiser_controller_remove_audience(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1562,7 +2054,7 @@ pub async fn advertiser_controller_remove_audience(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRemoveAudienceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1570,7 +2062,8 @@ pub async fn advertiser_controller_remove_audience(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_remove_catalog_feed(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerRemoveCatalogFeedError>> {
+/// Soft-deletes the feed and stops its scheduled syncs; items already imported stay in the catalog. Returns `deleted: false` (not 404) when no owned, live feed matches.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_remove_catalog_feed(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvDeleted, Error<AdvertiserControllerRemoveCatalogFeedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1581,6 +2074,17 @@ pub async fn advertiser_controller_remove_catalog_feed(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1589,7 +2093,7 @@ pub async fn advertiser_controller_remove_catalog_feed(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRemoveCatalogFeedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1597,7 +2101,8 @@ pub async fn advertiser_controller_remove_catalog_feed(configuration: &configura
     }
 }
 
-pub async fn advertiser_controller_remove_component(configuration: &configuration::Configuration, id: &str, cid: &str) -> Result<(), Error<AdvertiserControllerRemoveComponentError>> {
+/// Soft-deletes component `cid` and republishes the serving index. Responds 404 when the creative or the component is not owned by the advertiser.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_remove_component(configuration: &configuration::Configuration, id: &str, cid: &str) -> Result<models::AdvDeleted, Error<AdvertiserControllerRemoveComponentError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1608,6 +2113,17 @@ pub async fn advertiser_controller_remove_component(configuration: &configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1616,7 +2132,7 @@ pub async fn advertiser_controller_remove_component(configuration: &configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRemoveComponentError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1624,7 +2140,8 @@ pub async fn advertiser_controller_remove_component(configuration: &configuratio
     }
 }
 
-pub async fn advertiser_controller_remove_creative(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerRemoveCreativeError>> {
+/// Soft-deletes the creative, removes all its campaign attachments, and republishes the serving index. Responds 404 when not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_remove_creative(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvDeleted, Error<AdvertiserControllerRemoveCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1635,6 +2152,17 @@ pub async fn advertiser_controller_remove_creative(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1643,7 +2171,7 @@ pub async fn advertiser_controller_remove_creative(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRemoveCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1651,7 +2179,8 @@ pub async fn advertiser_controller_remove_creative(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_remove_destination(configuration: &configuration::Configuration, did: &str) -> Result<(), Error<AdvertiserControllerRemoveDestinationError>> {
+/// Deletes the destination; members already pushed to the external system are not removed there. 404/403 when missing or not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_remove_destination(configuration: &configuration::Configuration, did: &str) -> Result<models::AdvDeleted, Error<AdvertiserControllerRemoveDestinationError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1662,6 +2191,17 @@ pub async fn advertiser_controller_remove_destination(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1670,7 +2210,7 @@ pub async fn advertiser_controller_remove_destination(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRemoveDestinationError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1678,7 +2218,8 @@ pub async fn advertiser_controller_remove_destination(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_remove_group(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerRemoveGroupError>> {
+/// Soft-deletes the group. Its ad sets are not deleted; they are detached (`group_id` set to null) and keep serving as standalone campaigns. Responds 404 when the group is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_remove_group(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvDeleted, Error<AdvertiserControllerRemoveGroupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1689,6 +2230,17 @@ pub async fn advertiser_controller_remove_group(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1697,7 +2249,7 @@ pub async fn advertiser_controller_remove_group(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerRemoveGroupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1705,7 +2257,8 @@ pub async fn advertiser_controller_remove_group(configuration: &configuration::C
     }
 }
 
-pub async fn advertiser_controller_set_dco(configuration: &configuration::Configuration, id: &str, set_dco_dto: models::SetDcoDto) -> Result<(), Error<AdvertiserControllerSetDcoError>> {
+/// Sets `isDco` (default true) and `dcoContext` (global, geo, device or audience; default global; 400 otherwise), and optionally `productAd` and `defaultProductId` for dynamic product ads. When DCO is on, the engine fills the creative per render from the component pools. 404 when the creative is not owned or has no campaign.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_set_dco(configuration: &configuration::Configuration, id: &str, set_dco_dto: models::SetDcoDto) -> Result<models::AdvertiserControllerSetDco200Response, Error<AdvertiserControllerSetDcoError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1716,6 +2269,17 @@ pub async fn advertiser_controller_set_dco(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_dco_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1725,7 +2289,7 @@ pub async fn advertiser_controller_set_dco(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerSetDcoError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1733,7 +2297,8 @@ pub async fn advertiser_controller_set_dco(configuration: &configuration::Config
     }
 }
 
-pub async fn advertiser_controller_status(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerStatusError>> {
+/// Sets the campaign status from the body field `status` (`active` or `paused`) and republishes the serving index. Returns the status that was written. 404/403 as for GET campaign.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_status(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvStatusResult, Error<AdvertiserControllerStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1744,6 +2309,17 @@ pub async fn advertiser_controller_status(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1752,7 +2328,7 @@ pub async fn advertiser_controller_status(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1760,7 +2336,8 @@ pub async fn advertiser_controller_status(configuration: &configuration::Configu
     }
 }
 
-pub async fn advertiser_controller_submit(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerSubmitError>> {
+/// Moves a `draft` campaign to `pending_review` and enqueues it in the moderation queue. A campaign that is not in draft keeps its status, but the response still reports `pending_review`. 404/403 as for GET campaign.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_submit(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvStatusResult, Error<AdvertiserControllerSubmitError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1771,6 +2348,17 @@ pub async fn advertiser_controller_submit(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1779,7 +2367,7 @@ pub async fn advertiser_controller_submit(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerSubmitError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1787,7 +2375,8 @@ pub async fn advertiser_controller_submit(configuration: &configuration::Configu
     }
 }
 
-pub async fn advertiser_controller_submit_promote(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerSubmitPromoteError>> {
+/// Moves a draft promote campaign to `pending_review` and enqueues it for moderation; a non-draft keeps its status. Responds 404 when missing and 403 when not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_submit_promote(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvStatusResult, Error<AdvertiserControllerSubmitPromoteError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1798,6 +2387,17 @@ pub async fn advertiser_controller_submit_promote(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1806,7 +2406,7 @@ pub async fn advertiser_controller_submit_promote(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerSubmitPromoteError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1814,7 +2414,8 @@ pub async fn advertiser_controller_submit_promote(configuration: &configuration:
     }
 }
 
-pub async fn advertiser_controller_sync_destination(configuration: &configuration::Configuration, did: &str) -> Result<(), Error<AdvertiserControllerSyncDestinationError>> {
+/// Pushes the audience's current members (up to 500,000, excluding opt-outs) to the destination immediately and records the outcome on the destination. Returns the sync status and member count. 404/403 when the destination is missing or not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_sync_destination(configuration: &configuration::Configuration, did: &str) -> Result<models::AdvertiserControllerSyncDestination201Response, Error<AdvertiserControllerSyncDestinationError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1825,6 +2426,17 @@ pub async fn advertiser_controller_sync_destination(configuration: &configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1833,7 +2445,7 @@ pub async fn advertiser_controller_sync_destination(configuration: &configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerSyncDestinationError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1841,7 +2453,8 @@ pub async fn advertiser_controller_sync_destination(configuration: &configuratio
     }
 }
 
-pub async fn advertiser_controller_transcode_creative(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdvertiserControllerTranscodeCreativeError>> {
+/// Starts (or restarts) transcoding the creative's video to HLS so SSAI can splice its segments. The job runs in the background and errors are not reported; the response only confirms it was queued. Responds 404 when the creative is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_transcode_creative(configuration: &configuration::Configuration, id: &str) -> Result<models::AdvertiserControllerTranscodeCreative201Response, Error<AdvertiserControllerTranscodeCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1852,6 +2465,17 @@ pub async fn advertiser_controller_transcode_creative(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -1860,7 +2484,7 @@ pub async fn advertiser_controller_transcode_creative(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerTranscodeCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1868,7 +2492,8 @@ pub async fn advertiser_controller_transcode_creative(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_update(configuration: &configuration::Configuration, id: &str, update_campaign_dto: models::UpdateCampaignDto) -> Result<(), Error<AdvertiserControllerUpdateError>> {
+/// Patches the campaign. Updatable: name, bidAmount, budgets, pacing, startAt/endAt, SKAdNetwork ids, houseAd, priorityTier, deliveryGoal/goalType, bidModifiers, portfolioFreqCap, sequenceGroup/sequenceOrder, suppressAfterConversion, holdoutPct (clamped 0-1), bidStrategy/targetCpa/targetRoas and utm (null resets to defaults). Passing `targeting` replaces the whole targeting row (omitted targeting fields are cleared). Format, pricing model and currency cannot change. Republishes the serving index and returns the same shape as GET; 404/403 as for GET.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_update(configuration: &configuration::Configuration, id: &str, update_campaign_dto: models::UpdateCampaignDto) -> Result<models::AdvCampaignDetail, Error<AdvertiserControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1879,6 +2504,17 @@ pub async fn advertiser_controller_update(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_campaign_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1888,7 +2524,7 @@ pub async fn advertiser_controller_update(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1896,7 +2532,8 @@ pub async fn advertiser_controller_update(configuration: &configuration::Configu
     }
 }
 
-pub async fn advertiser_controller_update_audience(configuration: &configuration::Configuration, id: &str, create_audience_dto: models::CreateAudienceDto) -> Result<(), Error<AdvertiserControllerUpdateAudienceError>> {
+/// Updates `name` and/or `rule`. Setting a rule converts the audience to type `rule` and re-resolves its membership in the background. Responds 404 when the audience does not exist and 403 when it belongs to another account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_update_audience(configuration: &configuration::Configuration, id: &str, create_audience_dto: models::CreateAudienceDto) -> Result<models::AdvertiserControllerCreateAudience201Response, Error<AdvertiserControllerUpdateAudienceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1907,6 +2544,17 @@ pub async fn advertiser_controller_update_audience(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_audience_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1916,7 +2564,7 @@ pub async fn advertiser_controller_update_audience(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUpdateAudienceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1924,7 +2572,8 @@ pub async fn advertiser_controller_update_audience(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_update_creative(configuration: &configuration::Configuration, id: &str, update_creative_dto: models::UpdateCreativeDto) -> Result<(), Error<AdvertiserControllerUpdateCreativeError>> {
+/// Patches the creative's editable fields (asset/landing/icon/main-image URLs, copy, dimensions, weight, carousel items, video and VAST fields). URLs are SSRF-checked and the merged video fields re-validated (400). Any content change (asset, landing, copy, images, VAST tag, VPAID, companions) resets moderation to `pending` and re-runs the malware scan. Republishes the serving index; an empty patch returns the current row. 404 when not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_update_creative(configuration: &configuration::Configuration, id: &str, update_creative_dto: models::UpdateCreativeDto) -> Result<models::AdvCreative, Error<AdvertiserControllerUpdateCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1935,6 +2584,17 @@ pub async fn advertiser_controller_update_creative(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_creative_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1944,7 +2604,7 @@ pub async fn advertiser_controller_update_creative(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUpdateCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1952,7 +2612,8 @@ pub async fn advertiser_controller_update_creative(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_update_destination(configuration: &configuration::Configuration, did: &str, update_destination_dto: models::UpdateDestinationDto) -> Result<(), Error<AdvertiserControllerUpdateDestinationError>> {
+/// Updates the destination's `config` and/or `active` flag. Responds 404 when it does not exist and 403 when it belongs to another account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_update_destination(configuration: &configuration::Configuration, did: &str, update_destination_dto: models::UpdateDestinationDto) -> Result<models::AdvertiserControllerCreateAudience201Response, Error<AdvertiserControllerUpdateDestinationError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1963,6 +2624,17 @@ pub async fn advertiser_controller_update_destination(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_destination_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -1972,7 +2644,7 @@ pub async fn advertiser_controller_update_destination(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUpdateDestinationError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -1980,7 +2652,8 @@ pub async fn advertiser_controller_update_destination(configuration: &configurat
     }
 }
 
-pub async fn advertiser_controller_update_group(configuration: &configuration::Configuration, id: &str, update_campaign_group_dto: models::UpdateCampaignGroupDto) -> Result<(), Error<AdvertiserControllerUpdateGroupError>> {
+/// Patches `name`, `status` (active | paused | draft) and/or `objective`. Status cascades to the group's ad sets: `paused` pauses every active ad set, `active` re-activates paused ones (drafts stay draft), and the serving index is republished. Responds 404 when the group is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_update_group(configuration: &configuration::Configuration, id: &str, update_campaign_group_dto: models::UpdateCampaignGroupDto) -> Result<models::AdvCampaignGroup, Error<AdvertiserControllerUpdateGroupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -1991,6 +2664,17 @@ pub async fn advertiser_controller_update_group(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_campaign_group_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -2000,7 +2684,7 @@ pub async fn advertiser_controller_update_group(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUpdateGroupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -2008,7 +2692,8 @@ pub async fn advertiser_controller_update_group(configuration: &configuration::C
     }
 }
 
-pub async fn advertiser_controller_upload_creative(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerUploadCreativeError>> {
+/// Multipart upload with the file in field `file` (400 if missing). The file is ClamAV-scanned (fail-open: `skipped` when the scanner is unavailable), stored on object storage, and PNG/GIF/JPEG dimensions are detected. Pass the returned `assetUrl` to POST /v1/advertiser/creatives; this call does not create a creative.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_upload_creative(configuration: &configuration::Configuration, ) -> Result<models::AdvertiserControllerUploadCreative201Response, Error<AdvertiserControllerUploadCreativeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -2019,6 +2704,17 @@ pub async fn advertiser_controller_upload_creative(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -2027,7 +2723,7 @@ pub async fn advertiser_controller_upload_creative(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUploadCreativeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -2035,7 +2731,8 @@ pub async fn advertiser_controller_upload_creative(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_upload_playable(configuration: &configuration::Configuration, ) -> Result<(), Error<AdvertiserControllerUploadPlayableError>> {
+/// Multipart upload of a ZIP in field `file`. The bundle is malware-scanned and validated: it must have an `index.html` at its root, only allowed file types, no unsafe paths, and stay within file-count and size limits (400 otherwise, including zip-bomb expansion). The sandbox/MRAID runtime is injected into the entry document and the files are hosted on the CDN. Pass the returned `assetUrl` with `type: html5` to POST creatives.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_upload_playable(configuration: &configuration::Configuration, ) -> Result<models::AdvertiserControllerUploadPlayable201Response, Error<AdvertiserControllerUploadPlayableError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -2046,6 +2743,17 @@ pub async fn advertiser_controller_upload_playable(configuration: &configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -2054,7 +2762,7 @@ pub async fn advertiser_controller_upload_playable(configuration: &configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUploadPlayableError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -2062,7 +2770,8 @@ pub async fn advertiser_controller_upload_playable(configuration: &configuration
     }
 }
 
-pub async fn advertiser_controller_upsert_catalog(configuration: &configuration::Configuration, bulk_upsert_catalog_dto: models::BulkUpsertCatalogDto) -> Result<(), Error<AdvertiserControllerUpsertCatalogError>> {
+/// Upserts `items` into the marketplace catalog keyed by `externalId` (items without one are dropped) and mirrors each to Redis for serve-time rendering and keyword matching of sponsored products. Responds 400 when `items` is empty, no item has an externalId, or more than 50,000 items are sent.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_upsert_catalog(configuration: &configuration::Configuration, bulk_upsert_catalog_dto: models::BulkUpsertCatalogDto) -> Result<models::AdvertiserControllerUpsertCatalog201Response, Error<AdvertiserControllerUpsertCatalogError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -2073,6 +2782,17 @@ pub async fn advertiser_controller_upsert_catalog(configuration: &configuration:
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&bulk_upsert_catalog_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -2082,7 +2802,7 @@ pub async fn advertiser_controller_upsert_catalog(configuration: &configuration:
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUpsertCatalogError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -2090,7 +2810,8 @@ pub async fn advertiser_controller_upsert_catalog(configuration: &configuration:
     }
 }
 
-pub async fn advertiser_controller_upsert_conversion_config(configuration: &configuration::Configuration, id: &str, body: serde_json::Value) -> Result<(), Error<AdvertiserControllerUpsertConversionConfigError>> {
+/// Upserts the conversion config. Body fields: `eventType` (default purchase), `payoutValue` (also stored as conversion_value), `postbackUrl`, `dedupeWindowSec` (default 0), `attributionWindowDays` (default 30), `cpaMode` flat|percent, `cpaPercent`, `minOrderValue` (fraud floor) and `viewThroughHours`. Omitted fields are reset to their defaults rather than kept. Returns the stored config; 404/403 as for GET.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn advertiser_controller_upsert_conversion_config(configuration: &configuration::Configuration, id: &str, body: serde_json::Value) -> Result<models::AdvConversionConfig, Error<AdvertiserControllerUpsertConversionConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -2101,6 +2822,17 @@ pub async fn advertiser_controller_upsert_conversion_config(configuration: &conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&body);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -2110,7 +2842,7 @@ pub async fn advertiser_controller_upsert_conversion_config(configuration: &conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdvertiserControllerUpsertConversionConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

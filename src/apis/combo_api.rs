@@ -37,7 +37,8 @@ pub enum ComboControllerListPresetsError {
 }
 
 
-pub async fn combo_controller_create_combo(configuration: &configuration::Configuration, property_id: &str, create_combo_dto: models::CreateComboDto) -> Result<(), Error<ComboControllerCreateComboError>> {
+/// Creates several placements at once under one generated `comboId` and returns a single combined embed snippet to paste before `</body>`. Send either `presetKey` or a custom `units` array (formats banner, native, popunder, social_bar, interstitial, in_page_push, direct_link), plus optional `namePrefix` and shared floor/rev-share/auction/house settings applied to every unit. Adds a warning if the property already has a popunder. 400 for an unknown preset or a non-combinable format; 404/403 if the property is missing or not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn combo_controller_create_combo(configuration: &configuration::Configuration, property_id: &str, create_combo_dto: models::CreateComboDto) -> Result<models::ComboControllerCreateCombo201Response, Error<ComboControllerCreateComboError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -48,6 +49,17 @@ pub async fn combo_controller_create_combo(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_combo_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -57,7 +69,7 @@ pub async fn combo_controller_create_combo(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComboControllerCreateComboError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -65,7 +77,8 @@ pub async fn combo_controller_create_combo(configuration: &configuration::Config
     }
 }
 
-pub async fn combo_controller_list_combos(configuration: &configuration::Configuration, property_id: &str) -> Result<(), Error<ComboControllerListCombosError>> {
+/// Groups the property's live placements by `combo_id` (ungrouped placements are omitted) and rebuilds each group's combined snippet. 404/403 if the property is missing or not yours.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn combo_controller_list_combos(configuration: &configuration::Configuration, property_id: &str) -> Result<models::ComboControllerListCombos200Response, Error<ComboControllerListCombosError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -76,6 +89,17 @@ pub async fn combo_controller_list_combos(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -84,7 +108,7 @@ pub async fn combo_controller_list_combos(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComboControllerListCombosError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -92,7 +116,8 @@ pub async fn combo_controller_list_combos(configuration: &configuration::Configu
     }
 }
 
-pub async fn combo_controller_list_presets(configuration: &configuration::Configuration, ) -> Result<(), Error<ComboControllerListPresetsError>> {
+/// Returns the static catalog of combo presets (`standard_combo`, `leaderboard_pop`, `social_push`, `sticky_interstitial`, `full_monetization`), each with the placement units it provisions. Preset keys are stable.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn combo_controller_list_presets(configuration: &configuration::Configuration, ) -> Result<models::ComboControllerListPresets200Response, Error<ComboControllerListPresetsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -103,6 +128,17 @@ pub async fn combo_controller_list_presets(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -111,7 +147,7 @@ pub async fn combo_controller_list_presets(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ComboControllerListPresetsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

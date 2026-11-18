@@ -30,7 +30,8 @@ pub enum MfaControllerRankedError {
 }
 
 
-pub async fn mfa_controller_own(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<MfaControllerOwnError>> {
+/// Returns the latest MFA score for one of the caller's properties, whether it crosses the flag threshold, the reasons, raw signals and improvement tips. If no score has been stored yet it is computed on the fly (not persisted) and `computedAt` is null. Returns 404 for an unknown property and 403 if it belongs to another publisher.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn mfa_controller_own(configuration: &configuration::Configuration, id: &str) -> Result<models::MfaControllerOwn200Response, Error<MfaControllerOwnError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -41,6 +42,17 @@ pub async fn mfa_controller_own(configuration: &configuration::Configuration, id
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -49,7 +61,7 @@ pub async fn mfa_controller_own(configuration: &configuration::Configuration, id
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MfaControllerOwnError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -57,7 +69,8 @@ pub async fn mfa_controller_own(configuration: &configuration::Configuration, id
     }
 }
 
-pub async fn mfa_controller_ranked(configuration: &configuration::Configuration, limit: &str) -> Result<(), Error<MfaControllerRankedError>> {
+/// Lists properties with their latest made-for-advertising (MFA) score, highest first, including the stored signal breakdown and manual `mfa_flag`. `limit` defaults to 200 (max 1000). Properties never scored are omitted.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn mfa_controller_ranked(configuration: &configuration::Configuration, limit: &str) -> Result<Vec<models::MfaControllerRanked200ResponseInner>, Error<MfaControllerRankedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -69,6 +82,17 @@ pub async fn mfa_controller_ranked(configuration: &configuration::Configuration,
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -77,7 +101,7 @@ pub async fn mfa_controller_ranked(configuration: &configuration::Configuration,
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<MfaControllerRankedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

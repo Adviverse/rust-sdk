@@ -100,7 +100,8 @@ pub enum SegmentsControllerUserSegmentsError {
 }
 
 
-pub async fn segments_controller_catalog(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerCatalogError>> {
+/// Lists every non-sensitive taxonomy node with two ways to target it. `contextualKeywords` goes into targeting.contextual_include, is matched against page content at serve time and is free. `behavioral` is a network preset segment for targeting.audience_include and carries a data CPM; it is null until the preset reaches its k-anonymity minimum, and `behavioralBuilding` reports progress while it builds.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn segments_controller_catalog(configuration: &configuration::Configuration, ) -> Result<Vec<models::AudienceCatalogEntry>, Error<SegmentsControllerCatalogError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -111,6 +112,17 @@ pub async fn segments_controller_catalog(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -119,7 +131,7 @@ pub async fn segments_controller_catalog(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerCatalogError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -127,7 +139,8 @@ pub async fn segments_controller_catalog(configuration: &configuration::Configur
     }
 }
 
-pub async fn segments_controller_contribute(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerContributeError>> {
+/// Shares one of the caller's audiences (`audienceId`) as a co-op segment that other advertisers can license. `taxonomyId` is optional: when omitted the niche is auto-detected from the members, and unknown or sensitive niches leave the segment uncategorized. `revShare` (default 0.5, clamped to 0-0.9) sets the contributor's share of data fees. Re-contributing updates the existing segment. Members are materialized minus opted-out ids. Returns 404 if the audience is not owned.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn segments_controller_contribute(configuration: &configuration::Configuration, ) -> Result<models::SegmentsControllerContribute201Response, Error<SegmentsControllerContributeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -138,6 +151,17 @@ pub async fn segments_controller_contribute(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -146,7 +170,7 @@ pub async fn segments_controller_contribute(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerContributeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -154,7 +178,8 @@ pub async fn segments_controller_contribute(configuration: &configuration::Confi
     }
 }
 
-pub async fn segments_controller_contributions(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerContributionsError>> {
+/// Returns the caller's contributed co-op segments, newest first, with their size, rev-share and the number of advertisers that have licensed each one.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn segments_controller_contributions(configuration: &configuration::Configuration, ) -> Result<Vec<models::SegmentsControllerContributions200ResponseInner>, Error<SegmentsControllerContributionsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -165,6 +190,17 @@ pub async fn segments_controller_contributions(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -173,7 +209,7 @@ pub async fn segments_controller_contributions(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerContributionsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -181,7 +217,8 @@ pub async fn segments_controller_contributions(configuration: &configuration::Co
     }
 }
 
-pub async fn segments_controller_detect_niche(configuration: &configuration::Configuration, audience_id: &str) -> Result<(), Error<SegmentsControllerDetectNicheError>> {
+/// Previews the taxonomy node that best matches the members of `audienceId`, scored by keyword overlap. This is the niche contribute would assign. Returns nulls when nothing matches and 404 when the audience is not owned by the caller.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn segments_controller_detect_niche(configuration: &configuration::Configuration, audience_id: &str) -> Result<models::SegmentsControllerDetectNiche200Response, Error<SegmentsControllerDetectNicheError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -193,6 +230,17 @@ pub async fn segments_controller_detect_niche(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -201,7 +249,7 @@ pub async fn segments_controller_detect_niche(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerDetectNicheError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -209,7 +257,8 @@ pub async fn segments_controller_detect_niche(configuration: &configuration::Con
     }
 }
 
-pub async fn segments_controller_earnings(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerEarningsError>> {
+/// Reads the ledger for co-op data-fee movements. Returns the total earned as a contributor (rev-share credits) and the total spent as a licensee, a per-segment earnings rollup, and the 50 most recent earning and spend entries. Totals are rounded to cents.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn segments_controller_earnings(configuration: &configuration::Configuration, ) -> Result<models::SegmentsControllerEarnings200Response, Error<SegmentsControllerEarningsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -220,6 +269,17 @@ pub async fn segments_controller_earnings(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -228,7 +288,7 @@ pub async fn segments_controller_earnings(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerEarningsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -236,7 +296,8 @@ pub async fn segments_controller_earnings(configuration: &configuration::Configu
     }
 }
 
-pub async fn segments_controller_license(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<SegmentsControllerLicenseError>> {
+/// Grants the advertiser the right to target segment `id`, recording the data CPM that is charged on delivery and shared with the contributor. Returns 404 if the segment is not a coop/preset/in_market segment. Returns 400 if the caller owns it, if it is sensitive, or if it is below the k-anonymity threshold. Licensing is idempotent; add the returned `segmentId` to a campaign's targeting.audience_include.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn segments_controller_license(configuration: &configuration::Configuration, id: &str) -> Result<models::SegmentsControllerLicense201Response, Error<SegmentsControllerLicenseError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -247,6 +308,17 @@ pub async fn segments_controller_license(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -255,7 +327,7 @@ pub async fn segments_controller_license(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerLicenseError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -263,7 +335,8 @@ pub async fn segments_controller_license(configuration: &configuration::Configur
     }
 }
 
-pub async fn segments_controller_licenses(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerLicensesError>> {
+/// Returns the segments the advertiser has licensed, newest first, with the data CPM locked at license time and the segment's name, taxonomy node, size and scope.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn segments_controller_licenses(configuration: &configuration::Configuration, ) -> Result<Vec<models::SegmentsControllerLicenses200ResponseInner>, Error<SegmentsControllerLicensesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -274,6 +347,17 @@ pub async fn segments_controller_licenses(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -282,7 +366,7 @@ pub async fn segments_controller_licenses(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerLicensesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -290,7 +374,8 @@ pub async fn segments_controller_licenses(configuration: &configuration::Configu
     }
 }
 
-pub async fn segments_controller_opt_out(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerOptOutError>> {
+/// Public privacy endpoint, typically called by a preference center with the visitor's `adnet_uid` cookie or canonical id as `id`. The id is recorded as opted out and excluded from every future segment rebuild, and it is removed from live segment sets straight away on a best-effort basis. A missing `id` returns 400.  Auth: public, no credentials required.
+pub async fn segments_controller_opt_out(configuration: &configuration::Configuration, ) -> Result<models::SegmentsControllerOptOut201Response, Error<SegmentsControllerOptOutError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -309,7 +394,7 @@ pub async fn segments_controller_opt_out(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerOptOutError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -317,7 +402,8 @@ pub async fn segments_controller_opt_out(configuration: &configuration::Configur
     }
 }
 
-pub async fn segments_controller_rebuild(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerRebuildError>> {
+/// Runs, in order, the jobs that normally run on a timer: network preset classification, co-op niche union, in-market segments, and per-account first-party interest segments. Returns each job's count. Can be slow on large datasets because it scans ClickHouse keyword data for each taxonomy node.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn segments_controller_rebuild(configuration: &configuration::Configuration, ) -> Result<models::SegmentsControllerRebuild201Response, Error<SegmentsControllerRebuildError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -328,6 +414,17 @@ pub async fn segments_controller_rebuild(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -336,7 +433,7 @@ pub async fn segments_controller_rebuild(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerRebuildError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -344,7 +441,8 @@ pub async fn segments_controller_rebuild(configuration: &configuration::Configur
     }
 }
 
-pub async fn segments_controller_revoke(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<SegmentsControllerRevokeError>> {
+/// Unshares the co-op segment `id` and removes its contribution record, so it earns no further data fees. Only affects segments the caller owns; other ids are silently ignored.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn segments_controller_revoke(configuration: &configuration::Configuration, id: &str) -> Result<models::SegmentsControllerRevoke201Response, Error<SegmentsControllerRevokeError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -355,6 +453,17 @@ pub async fn segments_controller_revoke(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -363,7 +472,7 @@ pub async fn segments_controller_revoke(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerRevokeError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -371,7 +480,8 @@ pub async fn segments_controller_revoke(configuration: &configuration::Configura
     }
 }
 
-pub async fn segments_controller_taxonomy(configuration: &configuration::Configuration, ) -> Result<(), Error<SegmentsControllerTaxonomyError>> {
+/// Returns every node of the Audience Cloud interest taxonomy with its parent, display name, matching keywords and whether it is a sensitive category. Sensitive nodes are never built into shareable or licensable segments.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn segments_controller_taxonomy(configuration: &configuration::Configuration, ) -> Result<Vec<models::AudienceTaxonomyNode>, Error<SegmentsControllerTaxonomyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -382,6 +492,17 @@ pub async fn segments_controller_taxonomy(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -390,7 +511,7 @@ pub async fn segments_controller_taxonomy(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerTaxonomyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -398,7 +519,8 @@ pub async fn segments_controller_taxonomy(configuration: &configuration::Configu
     }
 }
 
-pub async fn segments_controller_user_segments(configuration: &configuration::Configuration, id_hash: &str) -> Result<(), Error<SegmentsControllerUserSegmentsError>> {
+/// Admin transparency tool: checks every non-empty segment for membership of `idHash` (a canonical id or uid) and returns the matching segments with their scope and taxonomy node.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn segments_controller_user_segments(configuration: &configuration::Configuration, id_hash: &str) -> Result<models::SegmentsControllerUserSegments200Response, Error<SegmentsControllerUserSegmentsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -409,6 +531,17 @@ pub async fn segments_controller_user_segments(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -417,7 +550,7 @@ pub async fn segments_controller_user_segments(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SegmentsControllerUserSegmentsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

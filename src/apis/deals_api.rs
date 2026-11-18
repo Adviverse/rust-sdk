@@ -65,7 +65,8 @@ pub enum DealsControllerStatusError {
 }
 
 
-pub async fn deals_controller_accept(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<DealsControllerAcceptError>> {
+/// The targeted advertiser accepts the deal, which becomes `active` and is published to the engine index; the publisher is emailed. Returns 403 if the caller is not the deal's advertiser and 404 if the deal is unknown.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn deals_controller_accept(configuration: &configuration::Configuration, id: &str) -> Result<models::DealsControllerClaim201Response, Error<DealsControllerAcceptError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -76,6 +77,17 @@ pub async fn deals_controller_accept(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -84,7 +96,7 @@ pub async fn deals_controller_accept(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DealsControllerAcceptError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -92,7 +104,8 @@ pub async fn deals_controller_accept(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn deals_controller_claim(configuration: &configuration::Configuration, token: &str) -> Result<(), Error<DealsControllerClaimError>> {
+/// The caller becomes the deal's advertiser; the deal goes `active`, the claim token is cleared and the publisher is emailed. Returns 400 if the deal already has an advertiser or the caller is its publisher, and 404 for an unknown token.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn deals_controller_claim(configuration: &configuration::Configuration, token: &str) -> Result<models::DealsControllerClaim201Response, Error<DealsControllerClaimError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -103,6 +116,17 @@ pub async fn deals_controller_claim(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -111,7 +135,7 @@ pub async fn deals_controller_claim(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DealsControllerClaimError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -119,7 +143,8 @@ pub async fn deals_controller_claim(configuration: &configuration::Configuration
     }
 }
 
-pub async fn deals_controller_create(configuration: &configuration::Configuration, create_deal_dto: models::CreateDealDto) -> Result<(), Error<DealsControllerCreateError>> {
+/// Creates a `pending` deal with `name` (required), `dealType` (`pmp` default, `preferred`, `guaranteed`), `floorCpm`, `currency` (USD), optional `placementId` and `startsAt`/`endsAt`. Fields are also accepted in snake_case. With `advertiserId` (must be an advertiser account) the advertiser is emailed an invite; without it the deal is open and gets a `claim_token` to share. The placement must belong to the creating publisher (403); its owner becomes the deal's publisher. Active deals are republished to the engine index.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn deals_controller_create(configuration: &configuration::Configuration, create_deal_dto: models::CreateDealDto) -> Result<models::Deal, Error<DealsControllerCreateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -130,6 +155,17 @@ pub async fn deals_controller_create(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_deal_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -139,7 +175,7 @@ pub async fn deals_controller_create(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DealsControllerCreateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -147,7 +183,8 @@ pub async fn deals_controller_create(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn deals_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<DealsControllerListError>> {
+/// Lists private-marketplace deals for the caller. Accounts can act on both sides, so `role=publisher` returns deals the account sells and `role=advertiser` returns deals offered to it. Without `role` the account type decides. Admins see all deals (capped at 500 when unpaginated). Supports optional `limit`/`offset`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn deals_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::Deal>, Error<DealsControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -158,6 +195,17 @@ pub async fn deals_controller_list(configuration: &configuration::Configuration,
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -166,7 +214,7 @@ pub async fn deals_controller_list(configuration: &configuration::Configuration,
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DealsControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -174,7 +222,8 @@ pub async fn deals_controller_list(configuration: &configuration::Configuration,
     }
 }
 
-pub async fn deals_controller_lookup_advertiser(configuration: &configuration::Configuration, email: &str) -> Result<(), Error<DealsControllerLookupAdvertiserError>> {
+/// Resolves an advertiser account by exact, case-insensitive `email` so a publisher can target a deal without knowing the account id. Exact match only, to avoid account enumeration. Returns 400 without an email and 404 when no advertiser matches.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn deals_controller_lookup_advertiser(configuration: &configuration::Configuration, email: &str) -> Result<models::DealsControllerLookupAdvertiser200Response, Error<DealsControllerLookupAdvertiserError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -186,6 +235,17 @@ pub async fn deals_controller_lookup_advertiser(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -194,7 +254,7 @@ pub async fn deals_controller_lookup_advertiser(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DealsControllerLookupAdvertiserError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -202,7 +262,8 @@ pub async fn deals_controller_lookup_advertiser(configuration: &configuration::C
     }
 }
 
-pub async fn deals_controller_preview_claim(configuration: &configuration::Configuration, token: &str) -> Result<(), Error<DealsControllerPreviewClaimError>> {
+/// Returns the deal behind a claim token (code, name, type, floor, currency, status and publisher company name) plus `claimable`, which is true while no advertiser is attached. 404 when the token is unknown or already used.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn deals_controller_preview_claim(configuration: &configuration::Configuration, token: &str) -> Result<models::DealsControllerPreviewClaim200Response, Error<DealsControllerPreviewClaimError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -213,6 +274,17 @@ pub async fn deals_controller_preview_claim(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -221,7 +293,7 @@ pub async fn deals_controller_preview_claim(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DealsControllerPreviewClaimError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -229,7 +301,8 @@ pub async fn deals_controller_preview_claim(configuration: &configuration::Confi
     }
 }
 
-pub async fn deals_controller_status(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<DealsControllerStatusError>> {
+/// Sets `status` to `active`, `paused`, `pending` or `expired`. Only the deal's publisher or an admin may do this (403 otherwise). The engine's active-deal index is republished, so pausing takes effect for serving right away.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn deals_controller_status(configuration: &configuration::Configuration, id: &str) -> Result<models::DealsControllerStatus201Response, Error<DealsControllerStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -240,6 +313,17 @@ pub async fn deals_controller_status(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -248,7 +332,7 @@ pub async fn deals_controller_status(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DealsControllerStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

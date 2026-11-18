@@ -23,7 +23,8 @@ pub enum EdgeControllerDomainAllowedError {
 }
 
 
-pub async fn edge_controller_domain_allowed(configuration: &configuration::Configuration, domain: &str) -> Result<(), Error<EdgeControllerDomainAllowedError>> {
+/// Public, unauthenticated endpoint called by the TLS edge's on-demand certificate check, not by users. Returns 200 with body `ok` only if `?domain=` is a verified publisher serving domain on a live property; otherwise 403.  Auth: public, no credentials required.
+pub async fn edge_controller_domain_allowed(configuration: &configuration::Configuration, domain: &str) -> Result<String, Error<EdgeControllerDomainAllowedError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -43,7 +44,7 @@ pub async fn edge_controller_domain_allowed(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<EdgeControllerDomainAllowedError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

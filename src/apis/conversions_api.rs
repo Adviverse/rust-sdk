@@ -44,6 +44,7 @@ pub enum ConversionsControllerTrackRefundError {
 }
 
 
+/// Adds the visitor's `adnet_uid` first-party cookie (minted on first contact) to audience `aud`, plus an advertiser-supplied `uid` when given. Only existing audiences accept members, and each audience has a size cap. GPC or `ac=0`/`ac=n` opts the visitor out: no cookie is set and no membership is recorded. Always responds with a 1x1 GIF.  Auth: public, no credentials required.
 pub async fn conversions_controller_track_audience(configuration: &configuration::Configuration, ) -> Result<(), Error<ConversionsControllerTrackAudienceError>> {
     let local_var_configuration = configuration;
 
@@ -71,7 +72,8 @@ pub async fn conversions_controller_track_audience(configuration: &configuration
     }
 }
 
-pub async fn conversions_controller_track_get(configuration: &configuration::Configuration, ) -> Result<(), Error<ConversionsControllerTrackGetError>> {
+/// Advertiser server-to-server postback keyed by `click_id`, with optional `value`, `order_id` and `order_value` query params. The click context cached by the ad engine resolves the campaign; the billed payout always comes from the campaign's server-side CPA config (flat or percent of order), never from the request. One conversion per click and one per (advertiser, order_id); orders below the configured minimum are rejected, and sponsored CPC clicks are skipped because they bill on the click. A recorded conversion emits the conversion event and fires the advertiser's outbound postback if one is configured.  Auth: public, no credentials required.
+pub async fn conversions_controller_track_get(configuration: &configuration::Configuration, ) -> Result<models::ConversionsControllerTrackGet200Response, Error<ConversionsControllerTrackGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -90,7 +92,7 @@ pub async fn conversions_controller_track_get(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ConversionsControllerTrackGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -98,7 +100,8 @@ pub async fn conversions_controller_track_get(configuration: &configuration::Con
     }
 }
 
-pub async fn conversions_controller_track_post(configuration: &configuration::Configuration, track_conversion_dto: models::TrackConversionDto) -> Result<(), Error<ConversionsControllerTrackPostError>> {
+/// JSON form of the conversion postback. Accepts `clickId`/`click_id`, `value`, `orderId`/`order_id` and `orderValue`/`order_value`, in camelCase or snake_case. Behaviour matches the GET form: dedup per click and per order, payout from the server-side CPA config, minimum-order check, and a `postbackId` returned when recorded. Unknown body fields are rejected with 400.  Auth: public, no credentials required.
+pub async fn conversions_controller_track_post(configuration: &configuration::Configuration, track_conversion_dto: models::TrackConversionDto) -> Result<models::ConversionsControllerTrackPost201Response, Error<ConversionsControllerTrackPostError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -118,7 +121,7 @@ pub async fn conversions_controller_track_post(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ConversionsControllerTrackPostError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -126,7 +129,8 @@ pub async fn conversions_controller_track_post(configuration: &configuration::Co
     }
 }
 
-pub async fn conversions_controller_track_refund(configuration: &configuration::Configuration, refund_dto: models::RefundDto) -> Result<(), Error<ConversionsControllerTrackRefundError>> {
+/// Claws back a held or settled per-checkout CPA conversion identified by `orderId`/`order_id`, optionally narrowed by `advertiserId`/`advertiser_id`. Emits a compensating conversion event carrying the original payout and publisher earnings so the ledger posts exact reversing entries, then marks the row refunded. A missing order id returns `error`, an unknown order `not_found`, and a repeat call `already_refunded`.  Auth: public, no credentials required.
+pub async fn conversions_controller_track_refund(configuration: &configuration::Configuration, refund_dto: models::RefundDto) -> Result<models::ConversionsControllerTrackRefund201Response, Error<ConversionsControllerTrackRefundError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -146,7 +150,7 @@ pub async fn conversions_controller_track_refund(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ConversionsControllerTrackRefundError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

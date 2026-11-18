@@ -128,7 +128,8 @@ pub enum AdminControllerSetStatusError {
 }
 
 
-pub async fn admin_controller_accounts(configuration: &configuration::Configuration, q: &str) -> Result<(), Error<AdminControllerAccountsError>> {
+/// Returns up to 200 non-deleted accounts, newest first. `q` filters by case-insensitive substring match on email.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_accounts(configuration: &configuration::Configuration, q: &str) -> Result<Vec<models::AdminControllerAccounts200ResponseInner>, Error<AdminControllerAccountsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -140,6 +141,17 @@ pub async fn admin_controller_accounts(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -148,7 +160,7 @@ pub async fn admin_controller_accounts(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerAccountsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -156,7 +168,8 @@ pub async fn admin_controller_accounts(configuration: &configuration::Configurat
     }
 }
 
-pub async fn admin_controller_add_block(configuration: &configuration::Configuration, add_block_dto: models::AddBlockDto) -> Result<(), Error<AdminControllerAddBlockError>> {
+/// Adds a `kind` (`ip`, `domain`, `asn`, `device`, `user_agent`, `country`, `subnet`) / `value` pair with an optional `reason`. Duplicates of an existing kind/value are ignored. The addition is audit-logged.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_add_block(configuration: &configuration::Configuration, add_block_dto: models::AddBlockDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerAddBlockError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -167,6 +180,17 @@ pub async fn admin_controller_add_block(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&add_block_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -176,7 +200,7 @@ pub async fn admin_controller_add_block(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerAddBlockError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -184,6 +208,7 @@ pub async fn admin_controller_add_block(configuration: &configuration::Configura
     }
 }
 
+/// Returns the 500 most recent `audit_log` rows (actor, action, target type/id, before/after JSON, timestamp). Includes account status changes, moderation decisions, blocks and config changes.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 pub async fn admin_controller_audits(configuration: &configuration::Configuration, ) -> Result<(), Error<AdminControllerAuditsError>> {
     let local_var_configuration = configuration;
 
@@ -195,6 +220,17 @@ pub async fn admin_controller_audits(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -211,6 +247,7 @@ pub async fn admin_controller_audits(configuration: &configuration::Configuratio
     }
 }
 
+/// Returns the 500 most recent `block_lists` rows (kind, value, reason, creator, timestamps).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 pub async fn admin_controller_blocklist(configuration: &configuration::Configuration, ) -> Result<(), Error<AdminControllerBlocklistError>> {
     let local_var_configuration = configuration;
 
@@ -222,6 +259,17 @@ pub async fn admin_controller_blocklist(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -238,7 +286,8 @@ pub async fn admin_controller_blocklist(configuration: &configuration::Configura
     }
 }
 
-pub async fn admin_controller_config(configuration: &configuration::Configuration, ) -> Result<(), Error<AdminControllerConfigError>> {
+/// Returns all `platform_config` key/value pairs, ordered by key. Values are arbitrary JSON.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_config(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdminControllerConfig200ResponseInner>, Error<AdminControllerConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -249,6 +298,17 @@ pub async fn admin_controller_config(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -257,7 +317,7 @@ pub async fn admin_controller_config(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -265,7 +325,8 @@ pub async fn admin_controller_config(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn admin_controller_confirm_deposit(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdminControllerConfirmDepositError>> {
+/// Marks a manual deposit received and credits the advertiser ledger. `ref` is the bank/provider reference (defaults to `manual:<id>`). Idempotent: `ok` is true only when a new credit was posted. A deposit tied to an agency invoice also marks that invoice paid.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_confirm_deposit(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerConfirmDepositError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -276,6 +337,17 @@ pub async fn admin_controller_confirm_deposit(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -284,7 +356,7 @@ pub async fn admin_controller_confirm_deposit(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerConfirmDepositError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -292,7 +364,8 @@ pub async fn admin_controller_confirm_deposit(configuration: &configuration::Con
     }
 }
 
-pub async fn admin_controller_confirm_payout(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdminControllerConfirmPayoutError>> {
+/// For manual (wire) payouts left in `processing`: after ops sends the bank transfer, `paid: true` (default) settles it and releases the held funds, and `paid: false` marks it failed and returns them. Returns 404 for an unknown payout and 400 if it is not awaiting confirmation.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_confirm_payout(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerConfirmPayoutError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -303,6 +376,17 @@ pub async fn admin_controller_confirm_payout(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -311,7 +395,7 @@ pub async fn admin_controller_confirm_payout(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerConfirmPayoutError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -319,7 +403,8 @@ pub async fn admin_controller_confirm_payout(configuration: &configuration::Conf
     }
 }
 
-pub async fn admin_controller_decide(configuration: &configuration::Configuration, id: &str, moderation_decision_dto: models::ModerationDecisionDto) -> Result<(), Error<AdminControllerDecideError>> {
+/// Applies `decision` (`approved` or `rejected`) with optional `notes` to a queue item. This updates the target: the creative's moderation status, the campaign or sponsored-product campaign's status (`active` or `rejected`), or the property's status. The decision is audit-logged and the serving index is republished, so approved items can serve within seconds. 404 for an unknown item.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_decide(configuration: &configuration::Configuration, id: &str, moderation_decision_dto: models::ModerationDecisionDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerDecideError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -330,6 +415,17 @@ pub async fn admin_controller_decide(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&moderation_decision_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -339,7 +435,7 @@ pub async fn admin_controller_decide(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerDecideError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -347,6 +443,7 @@ pub async fn admin_controller_decide(configuration: &configuration::Configuratio
     }
 }
 
+/// Returns up to 500 `pending` deposits on the manual `wire` and `paxum` rails, oldest first (all `deposits` columns).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 pub async fn admin_controller_pending_deposits(configuration: &configuration::Configuration, ) -> Result<(), Error<AdminControllerPendingDepositsError>> {
     let local_var_configuration = configuration;
 
@@ -358,6 +455,17 @@ pub async fn admin_controller_pending_deposits(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -374,6 +482,7 @@ pub async fn admin_controller_pending_deposits(configuration: &configuration::Co
     }
 }
 
+/// Returns publisher payouts in `requested` or `on_hold` status, oldest request first (all `payouts` columns).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 pub async fn admin_controller_pending_payouts(configuration: &configuration::Configuration, ) -> Result<(), Error<AdminControllerPendingPayoutsError>> {
     let local_var_configuration = configuration;
 
@@ -385,6 +494,17 @@ pub async fn admin_controller_pending_payouts(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -401,7 +521,8 @@ pub async fn admin_controller_pending_payouts(configuration: &configuration::Con
     }
 }
 
-pub async fn admin_controller_process_payout(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AdminControllerProcessPayoutError>> {
+/// Claims a `requested` payout atomically (so double-triggers call the provider once) and sends it through the payout rail for its method. If paid, the held funds are released from the ledger; if failed, the hold returns to available balance; manual rails such as wire stay `processing` until confirmed. Returns 400 if the payout is not in `requested`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_process_payout(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerProcessPayout201Response, Error<AdminControllerProcessPayoutError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -412,6 +533,17 @@ pub async fn admin_controller_process_payout(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -420,7 +552,7 @@ pub async fn admin_controller_process_payout(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerProcessPayoutError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -428,7 +560,8 @@ pub async fn admin_controller_process_payout(configuration: &configuration::Conf
     }
 }
 
-pub async fn admin_controller_quality(configuration: &configuration::Configuration, ) -> Result<(), Error<AdminControllerQualityError>> {
+/// Returns the 200 most recent quality-score windows per placement with the property domain, IVT rate, fill rate and composite score.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_quality(configuration: &configuration::Configuration, ) -> Result<Vec<models::AdminControllerQuality200ResponseInner>, Error<AdminControllerQualityError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -439,6 +572,17 @@ pub async fn admin_controller_quality(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -447,7 +591,7 @@ pub async fn admin_controller_quality(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerQualityError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -455,6 +599,7 @@ pub async fn admin_controller_quality(configuration: &configuration::Configurati
     }
 }
 
+/// Returns pending moderation items, oldest first, optionally filtered by `type` (entity type such as `creative`, `campaign`, `promote_campaign`, `property`). Creative items are joined with what a reviewer needs to see the ad: type, asset and landing URLs, title, screenshot, VAST/VPAID URLs, duration and companions.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
 pub async fn admin_controller_queue(configuration: &configuration::Configuration, r#type: &str) -> Result<(), Error<AdminControllerQueueError>> {
     let local_var_configuration = configuration;
 
@@ -467,6 +612,17 @@ pub async fn admin_controller_queue(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -483,7 +639,8 @@ pub async fn admin_controller_queue(configuration: &configuration::Configuration
     }
 }
 
-pub async fn admin_controller_rescan(configuration: &configuration::Configuration, creative_id: &str) -> Result<(), Error<AdminControllerRescanError>> {
+/// Recaptures the landing-page screenshot, then fetches the landing URL with a browser and a bot user agent and compares the responses. Repeated divergence adds cloaking strikes and, at the threshold, flags the creative and re-queues it for moderation. A matching fetch clears strikes and a prior cloaking flag. Fetch errors fail open (not flagged). The result is audit-logged.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_rescan(configuration: &configuration::Configuration, creative_id: &str) -> Result<models::AdminControllerRescan201Response, Error<AdminControllerRescanError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -494,6 +651,17 @@ pub async fn admin_controller_rescan(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -502,7 +670,7 @@ pub async fn admin_controller_rescan(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerRescanError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -510,7 +678,8 @@ pub async fn admin_controller_rescan(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn admin_controller_set_config(configuration: &configuration::Configuration, set_config_dto: models::SetConfigDto) -> Result<(), Error<AdminControllerSetConfigError>> {
+/// Creates or replaces the config entry `key` (1-200 chars) with `value` (any JSON). The change is recorded with the admin as updater and audit-logged.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_set_config(configuration: &configuration::Configuration, set_config_dto: models::SetConfigDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerSetConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -521,6 +690,17 @@ pub async fn admin_controller_set_config(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_config_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -530,7 +710,7 @@ pub async fn admin_controller_set_config(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerSetConfigError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -538,7 +718,8 @@ pub async fn admin_controller_set_config(configuration: &configuration::Configur
     }
 }
 
-pub async fn admin_controller_set_status(configuration: &configuration::Configuration, id: &str, set_account_status_dto: models::SetAccountStatusDto) -> Result<(), Error<AdminControllerSetStatusError>> {
+/// Sets an account's `status` to `active`, `pending`, `suspended`, `banned` or `closed`. The previous and new status are written to the audit log. 404 if the account does not exist.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn admin_controller_set_status(configuration: &configuration::Configuration, id: &str, set_account_status_dto: models::SetAccountStatusDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerSetStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -549,6 +730,17 @@ pub async fn admin_controller_set_status(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_account_status_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -558,7 +750,7 @@ pub async fn admin_controller_set_status(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AdminControllerSetStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

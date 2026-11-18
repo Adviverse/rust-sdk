@@ -93,7 +93,8 @@ pub enum SettingsControllerUpdateNetworkError {
 }
 
 
-pub async fn settings_controller_bid_rec(configuration: &configuration::Configuration, format: &str, geo: &str) -> Result<(), Error<SettingsControllerBidRecError>> {
+/// Recommends a CPM bid for `format` (and optional `geo`) from the last 7 days of valid winning impressions in ClickHouse. `recommendedCpm` is the 60th percentile of clearing CPM, `floorObserved` the median and `competitiveCpm` the 90th percentile, as 4-decimal strings. If the query fails it returns zeros with `note: \"insufficient data\"`.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn settings_controller_bid_rec(configuration: &configuration::Configuration, format: &str, geo: &str) -> Result<models::SettingsControllerBidRec200Response, Error<SettingsControllerBidRecError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -106,6 +107,17 @@ pub async fn settings_controller_bid_rec(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -114,7 +126,7 @@ pub async fn settings_controller_bid_rec(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerBidRecError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -122,7 +134,8 @@ pub async fn settings_controller_bid_rec(configuration: &configuration::Configur
     }
 }
 
-pub async fn settings_controller_brand_safety(configuration: &configuration::Configuration, id: &str, brand_safety_dto: models::BrandSafetyDto) -> Result<(), Error<SettingsControllerBrandSafetyError>> {
+/// Stores brand-safety settings (`categories`, `keywords`, `domains`, `sensitivity`, free-form `options`) as JSON on the campaign, replacing any previous value. Only campaigns owned by the caller are updated; a foreign or unknown id is silently ignored.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn settings_controller_brand_safety(configuration: &configuration::Configuration, id: &str, brand_safety_dto: models::BrandSafetyDto) -> Result<models::AdminControllerSetStatus201Response, Error<SettingsControllerBrandSafetyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -133,6 +146,17 @@ pub async fn settings_controller_brand_safety(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&brand_safety_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -142,7 +166,7 @@ pub async fn settings_controller_brand_safety(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerBrandSafetyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -150,7 +174,8 @@ pub async fn settings_controller_brand_safety(configuration: &configuration::Con
     }
 }
 
-pub async fn settings_controller_create_key(configuration: &configuration::Configuration, create_key_dto: models::CreateKeyDto) -> Result<(), Error<SettingsControllerCreateKeyError>> {
+/// Creates a scoped API key with `name`, optional `scopes` (default `[\"read\"]`) and optional `expiresInDays` (1-365; omitted = never expires). The full `key` (`ak_<prefix>.<secret>`) is returned exactly once; only its SHA-256 hash is stored. The key is projected to Redis immediately so the ad-engine accepts it without waiting for a resync.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn settings_controller_create_key(configuration: &configuration::Configuration, create_key_dto: models::CreateKeyDto) -> Result<models::ApiKeyCreated, Error<SettingsControllerCreateKeyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -161,6 +186,17 @@ pub async fn settings_controller_create_key(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_key_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -170,7 +206,7 @@ pub async fn settings_controller_create_key(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerCreateKeyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -178,7 +214,8 @@ pub async fn settings_controller_create_key(configuration: &configuration::Confi
     }
 }
 
-pub async fn settings_controller_create_terminal_token(configuration: &configuration::Configuration, create_terminal_token_dto: models::CreateTerminalTokenDto) -> Result<(), Error<SettingsControllerCreateTerminalTokenError>> {
+/// Mints a public `ts_` token for shipping inside a terminal client, with optional `name`, `campaignId` (must be one of your `terminal`-format campaigns) and `switch` policy. A switch policy (`flipAfter` / `flipOnClick`) requires a pinned campaign, and `fallbackTag` must be one of your own placement tags, otherwise 400. The token is projected to Redis so the engine resolves it on the serve path.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn settings_controller_create_terminal_token(configuration: &configuration::Configuration, create_terminal_token_dto: models::CreateTerminalTokenDto) -> Result<models::SettingsControllerCreateTerminalToken201Response, Error<SettingsControllerCreateTerminalTokenError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -189,6 +226,17 @@ pub async fn settings_controller_create_terminal_token(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&create_terminal_token_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -198,7 +246,7 @@ pub async fn settings_controller_create_terminal_token(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerCreateTerminalTokenError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -206,7 +254,8 @@ pub async fn settings_controller_create_terminal_token(configuration: &configura
     }
 }
 
-pub async fn settings_controller_list_keys(configuration: &configuration::Configuration, ) -> Result<(), Error<SettingsControllerListKeysError>> {
+/// Lists the account's live (non-revoked) API keys, newest first. Only the public `key_prefix` is returned; the secret is never shown again after creation. `expired` is true once `expires_at` has passed.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+pub async fn settings_controller_list_keys(configuration: &configuration::Configuration, ) -> Result<Vec<models::ApiKey>, Error<SettingsControllerListKeysError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -217,6 +266,17 @@ pub async fn settings_controller_list_keys(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -225,7 +285,7 @@ pub async fn settings_controller_list_keys(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerListKeysError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -233,7 +293,8 @@ pub async fn settings_controller_list_keys(configuration: &configuration::Config
     }
 }
 
-pub async fn settings_controller_list_terminal_tokens(configuration: &configuration::Configuration, ) -> Result<(), Error<SettingsControllerListTerminalTokensError>> {
+/// Lists the account's live public terminal serve tokens (`ts_...`), newest first, including any adaptive switch policy columns. These tokens are serve-only and safe to embed in distributed CLIs, so the full value is returned.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: advertiser.
+pub async fn settings_controller_list_terminal_tokens(configuration: &configuration::Configuration, ) -> Result<Vec<models::SettingsControllerListTerminalTokens200ResponseInner>, Error<SettingsControllerListTerminalTokensError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -244,6 +305,17 @@ pub async fn settings_controller_list_terminal_tokens(configuration: &configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -252,7 +324,7 @@ pub async fn settings_controller_list_terminal_tokens(configuration: &configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerListTerminalTokensError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -260,7 +332,8 @@ pub async fn settings_controller_list_terminal_tokens(configuration: &configurat
     }
 }
 
-pub async fn settings_controller_revoke_key(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<SettingsControllerRevokeKeyError>> {
+/// Marks the key revoked and removes it from the engine's Redis credential map, so it stops working everywhere. Revoking an unknown or foreign id is a silent no-op.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn settings_controller_revoke_key(configuration: &configuration::Configuration, id: &str) -> Result<models::SettingsControllerRevokeKey200Response, Error<SettingsControllerRevokeKeyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -271,6 +344,17 @@ pub async fn settings_controller_revoke_key(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -279,7 +363,7 @@ pub async fn settings_controller_revoke_key(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerRevokeKeyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -287,7 +371,8 @@ pub async fn settings_controller_revoke_key(configuration: &configuration::Confi
     }
 }
 
-pub async fn settings_controller_revoke_terminal_token(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<SettingsControllerRevokeTerminalTokenError>> {
+/// Marks the token revoked and deletes its Redis projection so the engine stops serving it. Unknown ids are a no-op.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn settings_controller_revoke_terminal_token(configuration: &configuration::Configuration, id: &str) -> Result<models::SegmentsControllerRevoke201Response, Error<SettingsControllerRevokeTerminalTokenError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -298,6 +383,17 @@ pub async fn settings_controller_revoke_terminal_token(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -306,7 +402,7 @@ pub async fn settings_controller_revoke_terminal_token(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerRevokeTerminalTokenError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -314,7 +410,8 @@ pub async fn settings_controller_revoke_terminal_token(configuration: &configura
     }
 }
 
-pub async fn settings_controller_rotate_terminal_token(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<SettingsControllerRotateTerminalTokenError>> {
+/// Replaces the token value with a new `ts_` string, keeping its campaign and switch policy. The old value is removed from Redis and stops serving immediately. Returns 400 if the token is not found.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn settings_controller_rotate_terminal_token(configuration: &configuration::Configuration, id: &str) -> Result<models::SettingsControllerRotateTerminalToken201Response, Error<SettingsControllerRotateTerminalTokenError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -325,6 +422,17 @@ pub async fn settings_controller_rotate_terminal_token(configuration: &configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -333,7 +441,7 @@ pub async fn settings_controller_rotate_terminal_token(configuration: &configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerRotateTerminalTokenError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -341,7 +449,8 @@ pub async fn settings_controller_rotate_terminal_token(configuration: &configura
     }
 }
 
-pub async fn settings_controller_set_terminal_token_policy(configuration: &configuration::Configuration, id: &str, terminal_switch_dto: models::TerminalSwitchDto) -> Result<(), Error<SettingsControllerSetTerminalTokenPolicyError>> {
+/// Arms, changes or disables (`flipAfter: 0`, `flipOnClick: false`) adaptive mode-switching on an existing token without changing its `ts_` value. Same validation as creation; 400 if the token is not found or the policy is invalid. The new policy is re-projected to Redis.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn settings_controller_set_terminal_token_policy(configuration: &configuration::Configuration, id: &str, terminal_switch_dto: models::TerminalSwitchDto) -> Result<models::SettingsControllerSetTerminalTokenPolicy200Response, Error<SettingsControllerSetTerminalTokenPolicyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -352,6 +461,17 @@ pub async fn settings_controller_set_terminal_token_policy(configuration: &confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&terminal_switch_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -361,7 +481,7 @@ pub async fn settings_controller_set_terminal_token_policy(configuration: &confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerSetTerminalTokenPolicyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -369,7 +489,8 @@ pub async fn settings_controller_set_terminal_token_policy(configuration: &confi
     }
 }
 
-pub async fn settings_controller_update_network(configuration: &configuration::Configuration, network_settings_dto: models::NetworkSettingsDto) -> Result<(), Error<SettingsControllerUpdateNetworkError>> {
+/// Sets the account's tenant `networkId` (null or empty = the general open pool) and/or `crossFill` opt-in to transact with other networks. Only provided fields change. Because these flags are projected onto every campaign and placement in the serving index, the indexer republishes after a change.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
+pub async fn settings_controller_update_network(configuration: &configuration::Configuration, network_settings_dto: models::NetworkSettingsDto) -> Result<models::SettingsControllerUpdateNetwork200Response, Error<SettingsControllerUpdateNetworkError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -380,6 +501,17 @@ pub async fn settings_controller_update_network(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&network_settings_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -389,7 +521,7 @@ pub async fn settings_controller_update_network(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<SettingsControllerUpdateNetworkError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

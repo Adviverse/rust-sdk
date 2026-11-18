@@ -184,7 +184,8 @@ pub enum AgencyControllerVoidInvoiceError {
 }
 
 
-pub async fn agency_controller_accept_transfer(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerAcceptTransferError>> {
+/// The recipient, signed in to their own account, accepts with `token`. In one transaction the pixel, its pixel-scoped audiences and their sync destinations move to the accepting account, and the sender's campaigns tagged to a client linked to that pixel are untagged. Audience membership keys are unchanged, so serving continues; historical analytics stay with the sender. Returns 400 if the transfer is not pending, has expired, is your own, or the pixel is gone.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn agency_controller_accept_transfer(configuration: &configuration::Configuration, ) -> Result<models::AgencyControllerAcceptTransfer201Response, Error<AgencyControllerAcceptTransferError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -195,6 +196,17 @@ pub async fn agency_controller_accept_transfer(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -203,7 +215,7 @@ pub async fn agency_controller_accept_transfer(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerAcceptTransferError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -211,7 +223,8 @@ pub async fn agency_controller_accept_transfer(configuration: &configuration::Co
     }
 }
 
-pub async fn agency_controller_add_item(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerAddItemError>> {
+/// Appends a line with `description` (required), optional `kind` (default `fee`), `quantity` (default 1) and `unitAmount`. `amount` defaults to quantity x unitAmount, rounded to cents. Draft invoices only (400 otherwise); totals are recomputed.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_add_item(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyInvoice, Error<AgencyControllerAddItemError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -222,6 +235,17 @@ pub async fn agency_controller_add_item(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -230,7 +254,7 @@ pub async fn agency_controller_add_item(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerAddItemError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -238,7 +262,8 @@ pub async fn agency_controller_add_item(configuration: &configuration::Configura
     }
 }
 
-pub async fn agency_controller_cancel_transfer(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerCancelTransferError>> {
+/// Cancels a transfer this account started. Only `pending` transfers can be cancelled (400 otherwise); 404 if unknown.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_cancel_transfer(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyControllerCancelTransfer201Response, Error<AgencyControllerCancelTransferError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -249,6 +274,17 @@ pub async fn agency_controller_cancel_transfer(configuration: &configuration::Co
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -257,7 +293,7 @@ pub async fn agency_controller_cancel_transfer(configuration: &configuration::Co
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerCancelTransferError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -265,7 +301,8 @@ pub async fn agency_controller_cancel_transfer(configuration: &configuration::Co
     }
 }
 
-pub async fn agency_controller_client_spend(configuration: &configuration::Configuration, id: &str, from: &str, to: &str) -> Result<(), Error<AgencyControllerClientSpendError>> {
+/// Sums spend, impressions, clicks and conversions from the ClickHouse hourly rollup across the client's tagged campaigns for the inclusive date range `from`..`to` (YYYY-MM-DD). Defaults to the last 30 days. Returns zeros when no campaigns are tagged. 404 for an unknown client.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_client_spend(configuration: &configuration::Configuration, id: &str, from: &str, to: &str) -> Result<models::AgencyControllerClientSpend200Response, Error<AgencyControllerClientSpendError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -278,6 +315,17 @@ pub async fn agency_controller_client_spend(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -286,7 +334,7 @@ pub async fn agency_controller_client_spend(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerClientSpendError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -294,7 +342,8 @@ pub async fn agency_controller_client_spend(configuration: &configuration::Confi
     }
 }
 
-pub async fn agency_controller_create_client(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerCreateClientError>> {
+/// Creates a client with `name` (required, truncated to 160 chars), optional `billingEmail` (lowercased; used when sending invoices), `pixelId` and `notes` (truncated to 2000 chars). A supplied `pixelId` must belong to the calling account, otherwise 400. A missing name also returns 400.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_create_client(configuration: &configuration::Configuration, ) -> Result<models::AgencyClient, Error<AgencyControllerCreateClientError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -305,6 +354,17 @@ pub async fn agency_controller_create_client(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -313,7 +373,7 @@ pub async fn agency_controller_create_client(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerCreateClientError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -321,7 +381,8 @@ pub async fn agency_controller_create_client(configuration: &configuration::Conf
     }
 }
 
-pub async fn agency_controller_create_invoice(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerCreateInvoiceError>> {
+/// Creates a draft invoice numbered `INV-NNNN` for `clientId` (required, must be owned). When `periodStart` and `periodEnd` are set and `includeSpend` is not false, an \"Ad spend\" line is added from the client's tagged-campaign spend, plus an agency fee line of `markupPct` percent of it. Optional `items` (description, kind, quantity, unitAmount, amount) are appended; `currency` defaults to USD. Totals are recomputed from the lines.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_create_invoice(configuration: &configuration::Configuration, ) -> Result<models::AgencyInvoice, Error<AgencyControllerCreateInvoiceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -332,6 +393,17 @@ pub async fn agency_controller_create_invoice(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -340,7 +412,7 @@ pub async fn agency_controller_create_invoice(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerCreateInvoiceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -348,7 +420,8 @@ pub async fn agency_controller_create_invoice(configuration: &configuration::Con
     }
 }
 
-pub async fn agency_controller_get_client(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerGetClientError>> {
+/// Returns one client owned by the calling account. 404 if it does not exist or belongs to another account. The single-client view reports `taggedCampaigns` as 0; use the list endpoint for counts.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_get_client(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyClient, Error<AgencyControllerGetClientError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -359,6 +432,17 @@ pub async fn agency_controller_get_client(configuration: &configuration::Configu
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -367,7 +451,7 @@ pub async fn agency_controller_get_client(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerGetClientError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -375,7 +459,8 @@ pub async fn agency_controller_get_client(configuration: &configuration::Configu
     }
 }
 
-pub async fn agency_controller_get_invoice(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerGetInvoiceError>> {
+/// Returns one invoice owned by the calling account, including its line items ordered by sort position. 404 if unknown.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_get_invoice(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyInvoice, Error<AgencyControllerGetInvoiceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -386,6 +471,17 @@ pub async fn agency_controller_get_invoice(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -394,7 +490,7 @@ pub async fn agency_controller_get_invoice(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerGetInvoiceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -402,7 +498,8 @@ pub async fn agency_controller_get_invoice(configuration: &configuration::Config
     }
 }
 
-pub async fn agency_controller_initiate_transfer(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerInitiateTransferError>> {
+/// Offers one of the account's pixels (`pixelId`), with its pixel-scoped audiences, to the account at `email`. The recipient is emailed a link that expires in 14 days. Returns 400 for an invalid email, a transfer to yourself, or a pixel that already has a pending transfer, and 404 for an unknown pixel. Not available to manager/analyst team seats.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_initiate_transfer(configuration: &configuration::Configuration, ) -> Result<models::AgencyTransfer, Error<AgencyControllerInitiateTransferError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -413,6 +510,17 @@ pub async fn agency_controller_initiate_transfer(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -421,7 +529,7 @@ pub async fn agency_controller_initiate_transfer(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerInitiateTransferError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -429,7 +537,8 @@ pub async fn agency_controller_initiate_transfer(configuration: &configuration::
     }
 }
 
-pub async fn agency_controller_list_clients(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerListClientsError>> {
+/// Returns the billable clients this agency account runs campaigns and pixels for, newest first. Each client includes `taggedCampaigns`, the number of non-deleted campaigns currently tagged to it.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_list_clients(configuration: &configuration::Configuration, ) -> Result<Vec<models::AgencyClient>, Error<AgencyControllerListClientsError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -440,6 +549,17 @@ pub async fn agency_controller_list_clients(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -448,7 +568,7 @@ pub async fn agency_controller_list_clients(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerListClientsError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -456,7 +576,8 @@ pub async fn agency_controller_list_clients(configuration: &configuration::Confi
     }
 }
 
-pub async fn agency_controller_list_invoices(configuration: &configuration::Configuration, client_id: &str) -> Result<(), Error<AgencyControllerListInvoicesError>> {
+/// Returns the account's client invoices, newest first, optionally filtered by `clientId`. List entries carry an empty `items` array; fetch a single invoice for its line items.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_list_invoices(configuration: &configuration::Configuration, client_id: &str) -> Result<Vec<models::AgencyInvoice>, Error<AgencyControllerListInvoicesError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -468,6 +589,17 @@ pub async fn agency_controller_list_invoices(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -476,7 +608,7 @@ pub async fn agency_controller_list_invoices(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerListInvoicesError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -484,7 +616,8 @@ pub async fn agency_controller_list_invoices(configuration: &configuration::Conf
     }
 }
 
-pub async fn agency_controller_list_transfers(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerListTransfersError>> {
+/// Returns up to 100 transfers this account has started, newest first, with pixel names and current status.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_list_transfers(configuration: &configuration::Configuration, ) -> Result<Vec<models::AgencyTransfer>, Error<AgencyControllerListTransfersError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -495,6 +628,17 @@ pub async fn agency_controller_list_transfers(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -503,7 +647,7 @@ pub async fn agency_controller_list_transfers(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerListTransfersError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -511,7 +655,8 @@ pub async fn agency_controller_list_transfers(configuration: &configuration::Con
     }
 }
 
-pub async fn agency_controller_mark_paid(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerMarkPaidError>> {
+/// Records an offline payment by setting the status to `paid` and stamping `paidAt`. No ledger entry is posted. Void invoices return 400.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_mark_paid(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyInvoice, Error<AgencyControllerMarkPaidError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -522,6 +667,17 @@ pub async fn agency_controller_mark_paid(configuration: &configuration::Configur
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -530,7 +686,7 @@ pub async fn agency_controller_mark_paid(configuration: &configuration::Configur
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerMarkPaidError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -538,7 +694,8 @@ pub async fn agency_controller_mark_paid(configuration: &configuration::Configur
     }
 }
 
-pub async fn agency_controller_pay_info(configuration: &configuration::Configuration, token: &str) -> Result<(), Error<AgencyControllerPayInfoError>> {
+/// Unauthenticated: the pay token in the path grants access. Returns what the client needs to review an invoice: number, status, total, agency and client names, period, notes, due/paid dates and line descriptions with amounts. 404 for an unknown token.  Auth: public, no credentials required.
+pub async fn agency_controller_pay_info(configuration: &configuration::Configuration, token: &str) -> Result<models::AgencyControllerPayInfo200Response, Error<AgencyControllerPayInfoError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -557,7 +714,7 @@ pub async fn agency_controller_pay_info(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerPayInfoError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -565,7 +722,8 @@ pub async fn agency_controller_pay_info(configuration: &configuration::Configura
     }
 }
 
-pub async fn agency_controller_remove_client(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerRemoveClientError>> {
+/// Deletes the client if it belongs to the calling account. Campaigns tagged to it are untagged by the database (ON DELETE SET NULL). Returns `{ deleted: true }` even when no matching client existed.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_remove_client(configuration: &configuration::Configuration, id: &str) -> Result<models::PixelControllerDeletePixel200Response, Error<AgencyControllerRemoveClientError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -576,6 +734,17 @@ pub async fn agency_controller_remove_client(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -584,7 +753,7 @@ pub async fn agency_controller_remove_client(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerRemoveClientError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -592,7 +761,8 @@ pub async fn agency_controller_remove_client(configuration: &configuration::Conf
     }
 }
 
-pub async fn agency_controller_remove_item(configuration: &configuration::Configuration, id: &str, item_id: &str) -> Result<(), Error<AgencyControllerRemoveItemError>> {
+/// Deletes the line item `itemId` from a draft invoice and recomputes the totals. Returns 400 if the invoice is not a draft.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_remove_item(configuration: &configuration::Configuration, id: &str, item_id: &str) -> Result<models::AgencyInvoice, Error<AgencyControllerRemoveItemError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -603,6 +773,17 @@ pub async fn agency_controller_remove_item(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -611,7 +792,7 @@ pub async fn agency_controller_remove_item(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerRemoveItemError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -619,7 +800,8 @@ pub async fn agency_controller_remove_item(configuration: &configuration::Config
     }
 }
 
-pub async fn agency_controller_send_invoice(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerSendInvoiceError>> {
+/// Moves the invoice to `sent`, mints a public pay token (reused if already set) and stamps `issuedAt`. If the client has a billing email, it is emailed a link to the hosted pay page. Fails with 400 for paid or void invoices or a non-positive total. The response adds `payLink`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_send_invoice(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyInvoice, Error<AgencyControllerSendInvoiceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -630,6 +812,17 @@ pub async fn agency_controller_send_invoice(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -638,7 +831,7 @@ pub async fn agency_controller_send_invoice(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerSendInvoiceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -646,7 +839,8 @@ pub async fn agency_controller_send_invoice(configuration: &configuration::Confi
     }
 }
 
-pub async fn agency_controller_start_payment(configuration: &configuration::Configuration, token: &str) -> Result<(), Error<AgencyControllerStartPaymentError>> {
+/// Unauthenticated (pay token in the path). Creates a pending deposit on the agency's account linked to the invoice and starts checkout with `provider` (`crypto`, anything else means Stripe). When the provider confirms, the deposit credits the agency balance and marks the invoice paid. Only `sent` invoices can be paid (400 otherwise).  Auth: public, no credentials required.
+pub async fn agency_controller_start_payment(configuration: &configuration::Configuration, token: &str) -> Result<models::AgencyControllerStartPayment201Response, Error<AgencyControllerStartPaymentError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -665,7 +859,7 @@ pub async fn agency_controller_start_payment(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerStartPaymentError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -673,7 +867,8 @@ pub async fn agency_controller_start_payment(configuration: &configuration::Conf
     }
 }
 
-pub async fn agency_controller_tag_campaign(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerTagCampaignError>> {
+/// Sets `campaignId`'s client tag to `clientId`, or clears it when `clientId` is null. Both the campaign and the client must belong to the calling account (404 otherwise). Tagged campaigns' spend is what client spend reports and auto-generated invoices bill.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_tag_campaign(configuration: &configuration::Configuration, ) -> Result<models::AgencyControllerTagCampaign201Response, Error<AgencyControllerTagCampaignError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -684,6 +879,17 @@ pub async fn agency_controller_tag_campaign(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -692,7 +898,7 @@ pub async fn agency_controller_tag_campaign(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerTagCampaignError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -700,7 +906,8 @@ pub async fn agency_controller_tag_campaign(configuration: &configuration::Confi
     }
 }
 
-pub async fn agency_controller_taggable(configuration: &configuration::Configuration, ) -> Result<(), Error<AgencyControllerTaggableError>> {
+/// Returns up to 500 of the account's non-deleted campaigns (ad sets) with their current `client_id` tag, newest first. Used by the tagging UI to assign campaign spend to a client.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_taggable(configuration: &configuration::Configuration, ) -> Result<Vec<models::AgencyControllerTaggable200ResponseInner>, Error<AgencyControllerTaggableError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -711,6 +918,17 @@ pub async fn agency_controller_taggable(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -719,7 +937,7 @@ pub async fn agency_controller_taggable(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerTaggableError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -727,7 +945,8 @@ pub async fn agency_controller_taggable(configuration: &configuration::Configura
     }
 }
 
-pub async fn agency_controller_transfer_info(configuration: &configuration::Configuration, token: &str) -> Result<(), Error<AgencyControllerTransferInfoError>> {
+/// Looks up a transfer by the `token` query parameter from the email link, so the recipient can review it before accepting. A pending transfer past its expiry is reported as `expired`. 404 for an unknown token.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, publisher, admin.
+pub async fn agency_controller_transfer_info(configuration: &configuration::Configuration, token: &str) -> Result<models::AgencyControllerTransferInfo200Response, Error<AgencyControllerTransferInfoError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -739,6 +958,17 @@ pub async fn agency_controller_transfer_info(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -747,7 +977,7 @@ pub async fn agency_controller_transfer_info(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerTransferInfoError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -755,7 +985,8 @@ pub async fn agency_controller_transfer_info(configuration: &configuration::Conf
     }
 }
 
-pub async fn agency_controller_update_client(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerUpdateClientError>> {
+/// Partially updates `name`, `billingEmail`, `pixelId`, `notes` and `status`. Only fields present are changed; `status` is applied only when it is `active` or `archived`. A new `pixelId` must belong to the account (400 otherwise); an empty string clears it. Returns the updated client.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_update_client(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyClient, Error<AgencyControllerUpdateClientError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -766,6 +997,17 @@ pub async fn agency_controller_update_client(configuration: &configuration::Conf
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -774,7 +1016,7 @@ pub async fn agency_controller_update_client(configuration: &configuration::Conf
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerUpdateClientError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -782,7 +1024,8 @@ pub async fn agency_controller_update_client(configuration: &configuration::Conf
     }
 }
 
-pub async fn agency_controller_update_invoice(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerUpdateInvoiceError>> {
+/// Updates `notes` (truncated to 4000 chars) and/or `dueAt` on a draft invoice. Returns 400 if the invoice is no longer a draft and 404 if unknown.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_update_invoice(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyInvoice, Error<AgencyControllerUpdateInvoiceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -793,6 +1036,17 @@ pub async fn agency_controller_update_invoice(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -801,7 +1055,7 @@ pub async fn agency_controller_update_invoice(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerUpdateInvoiceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -809,7 +1063,8 @@ pub async fn agency_controller_update_invoice(configuration: &configuration::Con
     }
 }
 
-pub async fn agency_controller_void_invoice(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<AgencyControllerVoidInvoiceError>> {
+/// Sets the invoice status to `void`; its pay link stops accepting payments. Paid invoices cannot be voided (400).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn agency_controller_void_invoice(configuration: &configuration::Configuration, id: &str) -> Result<models::AgencyInvoice, Error<AgencyControllerVoidInvoiceError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -820,6 +1075,17 @@ pub async fn agency_controller_void_invoice(configuration: &configuration::Confi
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -828,7 +1094,7 @@ pub async fn agency_controller_void_invoice(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<AgencyControllerVoidInvoiceError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };

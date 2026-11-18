@@ -121,7 +121,8 @@ pub enum ScreensControllerUpdateError {
 }
 
 
-pub async fn dooh_controller_get_setup(configuration: &configuration::Configuration, ) -> Result<(), Error<DoohControllerGetSetupError>> {
+/// Returns the account's DOOH partner registration (company, contact, screen count, venue types, integration, onboarding status), or null if it has not registered one.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, advertiser, admin.
+pub async fn dooh_controller_get_setup(configuration: &configuration::Configuration, ) -> Result<models::SupDoohPartner, Error<DoohControllerGetSetupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -132,6 +133,17 @@ pub async fn dooh_controller_get_setup(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -140,7 +152,7 @@ pub async fn dooh_controller_get_setup(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DoohControllerGetSetupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -148,7 +160,8 @@ pub async fn dooh_controller_get_setup(configuration: &configuration::Configurat
     }
 }
 
-pub async fn dooh_controller_list(configuration: &configuration::Configuration, status: &str) -> Result<(), Error<DoohControllerListError>> {
+/// Admin view of up to 500 DOOH registrations, newest first, each with the registering account's email. Optional `?status=` filters by new, contacted, onboarding, live or rejected (other values are ignored).  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn dooh_controller_list(configuration: &configuration::Configuration, status: &str) -> Result<Vec<models::DoohControllerList200ResponseInner>, Error<DoohControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -160,6 +173,17 @@ pub async fn dooh_controller_list(configuration: &configuration::Configuration, 
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -168,7 +192,7 @@ pub async fn dooh_controller_list(configuration: &configuration::Configuration, 
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DoohControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -176,7 +200,8 @@ pub async fn dooh_controller_list(configuration: &configuration::Configuration, 
     }
 }
 
-pub async fn dooh_controller_save_setup(configuration: &configuration::Configuration, dooh_setup_dto: models::DoohSetupDto) -> Result<(), Error<DoohControllerSaveSetupError>> {
+/// Upserts the account's single DOOH registration. `company` is required; `contactName`, `email`, `website`, `country`, `screenCount`, `venueTypes` (max 20), `integration` and `notes` are optional and trimmed to length limits. Returns the row id and its current onboarding status. 400 if `company` is empty.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, advertiser, admin.
+pub async fn dooh_controller_save_setup(configuration: &configuration::Configuration, dooh_setup_dto: models::DoohSetupDto) -> Result<models::DoohControllerSaveSetup201Response, Error<DoohControllerSaveSetupError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -187,6 +212,17 @@ pub async fn dooh_controller_save_setup(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&dooh_setup_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -196,7 +232,7 @@ pub async fn dooh_controller_save_setup(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DoohControllerSaveSetupError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -204,7 +240,8 @@ pub async fn dooh_controller_save_setup(configuration: &configuration::Configura
     }
 }
 
-pub async fn dooh_controller_set_status(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<DoohControllerSetStatusError>> {
+/// Moves a registration to `status` new, contacted, onboarding, live or rejected. 400 for any other value. Returns ok even if the id does not exist.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn dooh_controller_set_status(configuration: &configuration::Configuration, id: &str) -> Result<models::AuthControllerResendVerification201Response, Error<DoohControllerSetStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -215,6 +252,17 @@ pub async fn dooh_controller_set_status(configuration: &configuration::Configura
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -223,7 +271,7 @@ pub async fn dooh_controller_set_status(configuration: &configuration::Configura
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<DoohControllerSetStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -231,7 +279,8 @@ pub async fn dooh_controller_set_status(configuration: &configuration::Configura
     }
 }
 
-pub async fn screens_controller_admin_screens(configuration: &configuration::Configuration, ) -> Result<(), Error<ScreensControllerAdminScreensError>> {
+/// Admin fleet overview: up to 2000 claimed screens across all accounts, newest first, with serving tag and owner email.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
+pub async fn screens_controller_admin_screens(configuration: &configuration::Configuration, ) -> Result<Vec<models::ScreensControllerAdminScreens200ResponseInner>, Error<ScreensControllerAdminScreensError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -242,6 +291,17 @@ pub async fn screens_controller_admin_screens(configuration: &configuration::Con
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -250,7 +310,7 @@ pub async fn screens_controller_admin_screens(configuration: &configuration::Con
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerAdminScreensError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -258,7 +318,8 @@ pub async fn screens_controller_admin_screens(configuration: &configuration::Con
     }
 }
 
-pub async fn screens_controller_advertiser_plays(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<(), Error<ScreensControllerAdvertiserPlaysError>> {
+/// Advertiser verification report over your campaigns' DOOH plays between `from` and `to` (default last 30 days), including venue name and any screenshot attestation per play. Same shape as the publisher report.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
+pub async fn screens_controller_advertiser_plays(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<models::SupDoohPlayReport, Error<ScreensControllerAdvertiserPlaysError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -271,6 +332,17 @@ pub async fn screens_controller_advertiser_plays(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -279,7 +351,7 @@ pub async fn screens_controller_advertiser_plays(configuration: &configuration::
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerAdvertiserPlaysError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -287,7 +359,8 @@ pub async fn screens_controller_advertiser_plays(configuration: &configuration::
     }
 }
 
-pub async fn screens_controller_attest(configuration: &configuration::Configuration, ) -> Result<(), Error<ScreensControllerAttestError>> {
+/// Public, rate-limited endpoint used by the native DOOH player, authenticated by the active screen's serving `tag`. Body `image` is a base64 JPEG (data-URL prefix allowed, max ~2.5 MB). The image is stored and attached to the play identified by `popToken`, or to the screen's most recent play if omitted, and also counts as a heartbeat. 400 if tag/image are missing or the image is invalid, 404 if the tag is not an active screen.  Auth: public, no credentials required.
+pub async fn screens_controller_attest(configuration: &configuration::Configuration, ) -> Result<models::ScreensControllerAttest201Response, Error<ScreensControllerAttestError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -306,7 +379,7 @@ pub async fn screens_controller_attest(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerAttestError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -314,7 +387,8 @@ pub async fn screens_controller_attest(configuration: &configuration::Configurat
     }
 }
 
-pub async fn screens_controller_claim(configuration: &configuration::Configuration, claim_screen_dto: models::ClaimScreenDto) -> Result<(), Error<ScreensControllerClaimError>> {
+/// Attaches the pending screen showing `code` to your account and starts serving: creates a `dooh` placement under your DOOH property (created on first use) and stores venue details (`venueName`, `venueType`, `orientation`, resolution, `lat`/`lng`, `timezone`, `loopSeconds` default 8, `floorCpm`, `audienceMultiplier` default 1). Republishes the serving index. 404 if no screen is waiting for that code.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn screens_controller_claim(configuration: &configuration::Configuration, claim_screen_dto: models::ClaimScreenDto) -> Result<models::SupDoohScreen, Error<ScreensControllerClaimError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -325,6 +399,17 @@ pub async fn screens_controller_claim(configuration: &configuration::Configurati
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&claim_screen_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -334,7 +419,7 @@ pub async fn screens_controller_claim(configuration: &configuration::Configurati
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerClaimError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -342,7 +427,8 @@ pub async fn screens_controller_claim(configuration: &configuration::Configurati
     }
 }
 
-pub async fn screens_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<(), Error<ScreensControllerGetError>> {
+/// Returns one of your screens with its serving tag. 404 if it does not exist, 403 if another account owns it.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn screens_controller_get(configuration: &configuration::Configuration, id: &str) -> Result<models::SupDoohScreen, Error<ScreensControllerGetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -353,6 +439,17 @@ pub async fn screens_controller_get(configuration: &configuration::Configuration
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -361,7 +458,7 @@ pub async fn screens_controller_get(configuration: &configuration::Configuration
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerGetError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -369,7 +466,8 @@ pub async fn screens_controller_get(configuration: &configuration::Configuration
     }
 }
 
-pub async fn screens_controller_list(configuration: &configuration::Configuration, ) -> Result<(), Error<ScreensControllerListError>> {
+/// Returns your screen fleet, newest first, with `online` (heartbeat within 5 minutes) and the latest heartbeat time and player version taken from live heartbeat data when available.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn screens_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::ScreensControllerList200ResponseInner>, Error<ScreensControllerListError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -380,6 +478,17 @@ pub async fn screens_controller_list(configuration: &configuration::Configuratio
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -388,7 +497,7 @@ pub async fn screens_controller_list(configuration: &configuration::Configuratio
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerListError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -396,7 +505,8 @@ pub async fn screens_controller_list(configuration: &configuration::Configuratio
     }
 }
 
-pub async fn screens_controller_pair_init(configuration: &configuration::Configuration, pair_init_dto: models::PairInitDto) -> Result<(), Error<ScreensControllerPairInitError>> {
+/// Public, rate-limited endpoint the DOOH player calls on first boot. Creates a pending screen and returns a human-readable `pairingCode` to show on the display plus a secret `pollToken`. Optional body `version` records the player version.  Auth: public, no credentials required.
+pub async fn screens_controller_pair_init(configuration: &configuration::Configuration, pair_init_dto: models::PairInitDto) -> Result<models::ScreensControllerPairInit201Response, Error<ScreensControllerPairInitError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -416,7 +526,7 @@ pub async fn screens_controller_pair_init(configuration: &configuration::Configu
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerPairInitError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -424,7 +534,8 @@ pub async fn screens_controller_pair_init(configuration: &configuration::Configu
     }
 }
 
-pub async fn screens_controller_pair_status(configuration: &configuration::Configuration, poll_token: &str) -> Result<(), Error<ScreensControllerPairStatusError>> {
+/// Public, rate-limited. The player polls with `?pollToken=` until a publisher claims its code; then it receives its serving `tag` and `servingBase`. 404 for an unknown poll token.  Auth: public, no credentials required.
+pub async fn screens_controller_pair_status(configuration: &configuration::Configuration, poll_token: &str) -> Result<models::ScreensControllerPairStatus200Response, Error<ScreensControllerPairStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -444,7 +555,7 @@ pub async fn screens_controller_pair_status(configuration: &configuration::Confi
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerPairStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -452,7 +563,8 @@ pub async fn screens_controller_pair_status(configuration: &configuration::Confi
     }
 }
 
-pub async fn screens_controller_publisher_plays(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<(), Error<ScreensControllerPublisherPlaysError>> {
+/// Summarizes and lists (up to 2000) plays on your screens between `from` and `to` (ISO dates; default last 30 days): play and completion counts, completion rate (0-1), spend on completed plays, and distinct screens.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn screens_controller_publisher_plays(configuration: &configuration::Configuration, from: &str, to: &str) -> Result<models::SupDoohPlayReport, Error<ScreensControllerPublisherPlaysError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -465,6 +577,17 @@ pub async fn screens_controller_publisher_plays(configuration: &configuration::C
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -473,7 +596,7 @@ pub async fn screens_controller_publisher_plays(configuration: &configuration::C
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerPublisherPlaysError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -481,7 +604,8 @@ pub async fn screens_controller_publisher_plays(configuration: &configuration::C
     }
 }
 
-pub async fn screens_controller_set_status(configuration: &configuration::Configuration, id: &str, set_screen_status_dto: models::SetScreenStatusDto) -> Result<(), Error<ScreensControllerSetStatusError>> {
+/// Sets `status` (`active` or `paused`) on both the screen and its placement, then republishes the index so serving stops or resumes. 400 if not paired yet; 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn screens_controller_set_status(configuration: &configuration::Configuration, id: &str, set_screen_status_dto: models::SetScreenStatusDto) -> Result<models::ScreensControllerSetStatus201Response, Error<ScreensControllerSetStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -492,6 +616,17 @@ pub async fn screens_controller_set_status(configuration: &configuration::Config
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&set_screen_status_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -501,7 +636,7 @@ pub async fn screens_controller_set_status(configuration: &configuration::Config
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerSetStatusError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
@@ -509,7 +644,8 @@ pub async fn screens_controller_set_status(configuration: &configuration::Config
     }
 }
 
-pub async fn screens_controller_update(configuration: &configuration::Configuration, id: &str, update_screen_dto: models::UpdateScreenDto) -> Result<(), Error<ScreensControllerUpdateError>> {
+/// Edits `venueName`, `venueType`, `orientation`, `loopSeconds`, `floorCpm` and `audienceMultiplier` on a paired screen, keeping its placement settings in sync, and republishes the index. 400 if the screen is not paired yet; 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: publisher, admin.
+pub async fn screens_controller_update(configuration: &configuration::Configuration, id: &str, update_screen_dto: models::UpdateScreenDto) -> Result<models::SupDoohScreen, Error<ScreensControllerUpdateError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -520,6 +656,17 @@ pub async fn screens_controller_update(configuration: &configuration::Configurat
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&update_screen_dto);
 
     let local_var_req = local_var_req_builder.build()?;
@@ -529,7 +676,7 @@ pub async fn screens_controller_update(configuration: &configuration::Configurat
     let local_var_content = local_var_resp.text().await?;
 
     if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        Ok(())
+        serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<ScreensControllerUpdateError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
