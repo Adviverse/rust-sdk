@@ -1,0 +1,28 @@
+name: release
+on:
+  push: { tags: ['v*'] }
+permissions:
+  contents: write       # GitHub release
+  id-token: write       # OIDC: provenance signing + registry trusted publishing
+  attestations: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: |
+          cargo build --locked || cargo build
+          cargo package --allow-dirty --no-verify
+          cp target/package/*.crate .
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: '*.crate' }
+      - uses: softprops/action-gh-release@v2
+        with: { files: '*.crate' }
+      # crates.io trusted publishing needs the crate to exist first (one manual publish), then a trusted publisher config.
+      - if: vars.CRATES_PUBLISH == 'true'
+        id: crates
+        uses: rust-lang/crates-io-auth-action@v1
+      - if: vars.CRATES_PUBLISH == 'true'
+        run: cargo publish --allow-dirty
+        env: { CARGO_REGISTRY_TOKEN: ${{ steps.crates.outputs.token }} }
