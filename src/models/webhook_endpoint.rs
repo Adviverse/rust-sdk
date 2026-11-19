@@ -24,20 +24,28 @@ pub struct WebhookEndpoint {
     /// Not returned on create.
     #[serde(rename = "created_at", skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
-    /// HMAC-SHA256 signing secret (whsec_...).
-    #[serde(rename = "secret")]
-    pub secret: String,
+    /// HMAC-SHA256 signing secret (whsec_...). Returned only by create and rotate-secret.
+    #[serde(rename = "secret", skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    /// List/update only: whether a signing secret is set.
+    #[serde(rename = "has_secret", skip_serializing_if = "Option::is_none")]
+    pub has_secret: Option<bool>,
+    /// List/update only: last 4 characters of the secret.
+    #[serde(rename = "secret_hint", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub secret_hint: Option<Option<String>>,
 }
 
 impl WebhookEndpoint {
-    pub fn new(id: uuid::Uuid, url: String, events: Vec<String>, active: bool, secret: String) -> WebhookEndpoint {
+    pub fn new(id: uuid::Uuid, url: String, events: Vec<String>, active: bool) -> WebhookEndpoint {
         WebhookEndpoint {
             id,
             url,
             events,
             active,
             created_at: None,
-            secret,
+            secret: None,
+            has_secret: None,
+            secret_hint: None,
         }
     }
 }

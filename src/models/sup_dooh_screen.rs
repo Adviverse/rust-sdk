@@ -11,7 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-/// SupDoohScreen : A `dooh_screens` row plus its placement `tag_key`.
+/// SupDoohScreen : A `dooh_screens` row plus its placement `tag_key`. Player credentials (`poll_token`, `pairing_token`) are never returned.
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SupDoohScreen {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
@@ -45,10 +45,6 @@ pub struct SupDoohScreen {
     pub status: Option<Status>,
     #[serde(rename = "pairing_code", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub pairing_code: Option<Option<String>>,
-    #[serde(rename = "poll_token", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
-    pub poll_token: Option<Option<String>>,
-    #[serde(rename = "pairing_token", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
-    pub pairing_token: Option<Option<String>>,
     #[serde(rename = "paired_at", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub paired_at: Option<Option<String>>,
     #[serde(rename = "last_heartbeat_at", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
@@ -64,7 +60,7 @@ pub struct SupDoohScreen {
 }
 
 impl SupDoohScreen {
-    /// A `dooh_screens` row plus its placement `tag_key`.
+    /// A `dooh_screens` row plus its placement `tag_key`. Player credentials (`poll_token`, `pairing_token`) are never returned.
     pub fn new() -> SupDoohScreen {
         SupDoohScreen {
             id: None,
@@ -82,8 +78,6 @@ impl SupDoohScreen {
             audience_multiplier: None,
             status: None,
             pairing_code: None,
-            poll_token: None,
-            pairing_token: None,
             paired_at: None,
             last_heartbeat_at: None,
             player_version: None,

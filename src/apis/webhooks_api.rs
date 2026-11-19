@@ -50,6 +50,13 @@ pub enum WebhooksControllerRedeliverError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`webhooks_controller_reveal_secret`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WebhooksControllerRevealSecretError {
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`webhooks_controller_rotate_secret`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -160,7 +167,7 @@ pub async fn webhooks_controller_events(configuration: &configuration::Configura
     }
 }
 
-/// Lists the account's webhook subscriptions, newest first. Includes each endpoint's HMAC signing `secret` so the dashboard can show it for verifying the `X-Adviverse-Signature` header.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
+/// Lists the account's webhook subscriptions, newest first. The signing secret is not returned: each endpoint has `has_secret` and `secret_hint` (its last 4 characters). Use POST /v1/webhooks/{id}/secret/reveal to fetch the secret.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`).
 pub async fn webhooks_controller_list(configuration: &configuration::Configuration, ) -> Result<Vec<models::WebhookEndpoint>, Error<WebhooksControllerListError>> {
     let local_var_configuration = configuration;
 
@@ -272,6 +279,45 @@ pub async fn webhooks_controller_redeliver(configuration: &configuration::Config
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<WebhooksControllerRedeliverError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
+        Err(Error::ResponseError(local_var_error))
+    }
+}
+
+/// Returns the endpoint's current `whsec_` HMAC signing secret, used to verify the `X-Adviverse-Signature` header. List and update never return it. Returns 400 if the endpoint is not found for this account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+pub async fn webhooks_controller_reveal_secret(configuration: &configuration::Configuration, id: &str) -> Result<models::WebhooksControllerRevealSecret201Response, Error<WebhooksControllerRevealSecretError>> {
+    let local_var_configuration = configuration;
+
+    let local_var_client = &local_var_configuration.client;
+
+    let local_var_uri_str = format!("{}/v1/webhooks/{id}/secret/reveal", local_var_configuration.base_path, id=crate::apis::urlencode(id));
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::POST, local_var_uri_str.as_str());
+
+    if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
+        local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
+    }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
+
+    let local_var_req = local_var_req_builder.build()?;
+    let local_var_resp = local_var_client.execute(local_var_req).await?;
+
+    let local_var_status = local_var_resp.status();
+    let local_var_content = local_var_resp.text().await?;
+
+    if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
+        serde_json::from_str(&local_var_content).map_err(Error::from)
+    } else {
+        let local_var_entity: Option<WebhooksControllerRevealSecretError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -395,7 +441,7 @@ pub async fn webhooks_controller_unsubscribe(configuration: &configuration::Conf
     }
 }
 
-/// Changes an endpoint's `url`, `events` and/or `active` flag (set false to pause deliveries); omitted fields are kept. A new URL goes through the SSRF guard and unknown event names are rejected with 400. Returns 400 if the endpoint is not found for this account.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
+/// Changes an endpoint's `url`, `events` and/or `active` flag (set false to pause deliveries); omitted fields are kept. A new URL goes through the SSRF guard and unknown event names are rejected with 400. Returns 400 if the endpoint is not found for this account. The secret is not returned (`has_secret` + `secret_hint` instead).  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`).
 pub async fn webhooks_controller_update(configuration: &configuration::Configuration, id: &str, update_webhook_dto: models::UpdateWebhookDto) -> Result<models::WebhookEndpoint, Error<WebhooksControllerUpdateError>> {
     let local_var_configuration = configuration;
 

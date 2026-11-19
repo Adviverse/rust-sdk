@@ -11,7 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-/// SupSurface : A `surfaces` row plus its placement `tag_key`.
+/// SupSurface : A `surfaces` row plus its placement `tag_key`. Player credentials (`poll_token`, `pairing_token`) are never returned.
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SupSurface {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
@@ -45,8 +45,6 @@ pub struct SupSurface {
     pub status: Option<String>,
     #[serde(rename = "pairing_code", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub pairing_code: Option<Option<String>>,
-    #[serde(rename = "poll_token", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
-    pub poll_token: Option<Option<String>>,
     #[serde(rename = "last_heartbeat_at", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub last_heartbeat_at: Option<Option<String>>,
     #[serde(rename = "tag_key", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
@@ -56,7 +54,7 @@ pub struct SupSurface {
 }
 
 impl SupSurface {
-    /// A `surfaces` row plus its placement `tag_key`.
+    /// A `surfaces` row plus its placement `tag_key`. Player credentials (`poll_token`, `pairing_token`) are never returned.
     pub fn new() -> SupSurface {
         SupSurface {
             id: None,
@@ -74,7 +72,6 @@ impl SupSurface {
             audience_multiplier: None,
             status: None,
             pairing_code: None,
-            poll_token: None,
             last_heartbeat_at: None,
             tag_key: None,
             created_at: None,

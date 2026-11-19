@@ -117,6 +117,7 @@ pub mod mfa_api;
 pub mod optimization_api;
 pub mod pixel_api;
 pub mod portal_api;
+pub mod property_trust_api;
 pub mod publisher_api;
 pub mod publisher_insights_api;
 pub mod referrals_api;

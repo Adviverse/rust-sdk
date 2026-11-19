@@ -25,8 +25,27 @@ pub struct PubProperty {
     /// Hostname, CLI slug, or app bundle id
     #[serde(rename = "domain", skip_serializing_if = "Option::is_none")]
     pub domain: Option<String>,
+    /// Site-niche id (GET /v1/site-niches); null when unknown
     #[serde(rename = "category", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub category: Option<Option<i32>>,
+    #[serde(rename = "category_source", skip_serializing_if = "Option::is_none")]
+    pub category_source: Option<CategorySource>,
+    #[serde(rename = "categories", skip_serializing_if = "Option::is_none")]
+    pub categories: Option<Vec<models::PubPropertyCategoriesInner>>,
+    #[serde(rename = "classified_at", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub classified_at: Option<Option<String>>,
+    #[serde(rename = "classify_error", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub classify_error: Option<Option<String>>,
+    /// unverified = CPA-only demand; promoted automatically once proven clean
+    #[serde(rename = "trust_tier", skip_serializing_if = "Option::is_none")]
+    pub trust_tier: Option<TrustTier>,
+    /// An admin pinned the trust tier; automatic changes are off
+    #[serde(rename = "trust_locked", skip_serializing_if = "Option::is_none")]
+    pub trust_locked: Option<bool>,
+    #[serde(rename = "verified_at", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub verified_at: Option<Option<String>>,
+    #[serde(rename = "trust_progress", skip_serializing_if = "Option::is_none")]
+    pub trust_progress: Option<Box<models::TrustProgress>>,
     #[serde(rename = "verification_status", skip_serializing_if = "Option::is_none")]
     pub verification_status: Option<VerificationStatus>,
     #[serde(rename = "verification_method", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
@@ -78,6 +97,14 @@ impl PubProperty {
             name: None,
             domain: None,
             category: None,
+            category_source: None,
+            categories: None,
+            classified_at: None,
+            classify_error: None,
+            trust_tier: None,
+            trust_locked: None,
+            verified_at: None,
+            trust_progress: None,
             verification_status: None,
             verification_method: None,
             verification_token: None,
@@ -98,6 +125,34 @@ impl PubProperty {
             updated_at: None,
             deleted_at: None,
         }
+    }
+}
+/// 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+pub enum CategorySource {
+    #[serde(rename = "auto")]
+    Auto,
+    #[serde(rename = "manual")]
+    Manual,
+}
+
+impl Default for CategorySource {
+    fn default() -> CategorySource {
+        Self::Auto
+    }
+}
+/// unverified = CPA-only demand; promoted automatically once proven clean
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+pub enum TrustTier {
+    #[serde(rename = "unverified")]
+    Unverified,
+    #[serde(rename = "trusted")]
+    Trusted,
+}
+
+impl Default for TrustTier {
+    fn default() -> TrustTier {
+        Self::Unverified
     }
 }
 /// 

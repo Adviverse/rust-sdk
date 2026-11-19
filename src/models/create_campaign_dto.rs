@@ -53,6 +53,10 @@ pub struct CreateCampaignDto {
     pub conversion: Option<serde_json::Value>,
     #[serde(rename = "houseAd", skip_serializing_if = "Option::is_none")]
     pub house_ad: Option<bool>,
+    #[serde(rename = "autoOwnPlacements", skip_serializing_if = "Option::is_none")]
+    pub auto_own_placements: Option<bool>,
+    #[serde(rename = "networkExpansion", skip_serializing_if = "Option::is_none")]
+    pub network_expansion: Option<bool>,
     #[serde(rename = "priorityTier", skip_serializing_if = "Option::is_none")]
     pub priority_tier: Option<PriorityTier>,
     #[serde(rename = "deliveryGoal", skip_serializing_if = "Option::is_none")]
@@ -102,6 +106,8 @@ impl CreateCampaignDto {
             targeting: None,
             conversion: None,
             house_ad: None,
+            auto_own_placements: None,
+            network_expansion: None,
             priority_tier: None,
             delivery_goal: None,
             goal_type: None,

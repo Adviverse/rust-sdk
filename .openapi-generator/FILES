@@ -29,6 +29,7 @@ src/apis/mod.rs
 src/apis/optimization_api.rs
 src/apis/pixel_api.rs
 src/apis/portal_api.rs
+src/apis/property_trust_api.rs
 src/apis/publisher_api.rs
 src/apis/publisher_insights_api.rs
 src/apis/referrals_api.rs
@@ -53,6 +54,7 @@ src/models/admin_controller_process_payout_201_response.rs
 src/models/admin_controller_quality_200_response_inner.rs
 src/models/admin_controller_rescan_201_response.rs
 src/models/admin_controller_set_status_201_response.rs
+src/models/admin_trust_dto.rs
 src/models/adv_ad_set_summary.rs
 src/models/adv_audience.rs
 src/models/adv_audience_destination.rs
@@ -276,6 +278,8 @@ src/models/mod.rs
 src/models/modeled_lookalike_dto.rs
 src/models/moderation_decision_dto.rs
 src/models/network_settings_dto.rs
+src/models/niche_classification.rs
+src/models/niche_score.rs
 src/models/oauth_discord_dto.rs
 src/models/oauth_google_dto.rs
 src/models/oauth_start_dto.rs
@@ -307,10 +311,13 @@ src/models/portal_templates_controller_list_templates_200_response_inner.rs
 src/models/portal_templates_controller_list_templates_200_response_inner_fields_inner.rs
 src/models/profile_dto.rs
 src/models/promote_campaign_reporting_controller_summary_200_response.rs
+src/models/property_trust_controller_admin_list_200_response_inner.rs
+src/models/property_trust_controller_admin_set_201_response.rs
 src/models/pub_combo_preset.rs
 src/models/pub_combo_preset_units_inner.rs
 src/models/pub_placement.rs
 src/models/pub_property.rs
+src/models/pub_property_categories_inner.rs
 src/models/pub_serving_domain.rs
 src/models/publisher_controller_disable_signing_200_response.rs
 src/models/publisher_controller_domain_connect_201_response.rs
@@ -461,6 +468,7 @@ src/models/settings_controller_rotate_terminal_token_201_response.rs
 src/models/settings_controller_set_terminal_token_policy_200_response.rs
 src/models/settings_controller_update_network_200_response.rs
 src/models/signup_dto.rs
+src/models/site_niche.rs
 src/models/skadnetwork_controller_health_200_response.rs
 src/models/skadnetwork_controller_postback_200_response.rs
 src/models/stats_controller_get_200_response.rs
@@ -479,6 +487,8 @@ src/models/surface_pair_init_dto.rs
 src/models/tax_form_dto.rs
 src/models/terminal_switch_dto.rs
 src/models/track_conversion_dto.rs
+src/models/trust_event.rs
+src/models/trust_progress.rs
 src/models/update_app_dto.rs
 src/models/update_campaign_dto.rs
 src/models/update_campaign_group_dto.rs
@@ -497,4 +507,5 @@ src/models/webhook_delivery.rs
 src/models/webhook_delivery_result.rs
 src/models/webhook_endpoint.rs
 src/models/webhooks_controller_events_200_response.rs
+src/models/webhooks_controller_reveal_secret_201_response.rs
 src/models/webhooks_controller_unsubscribe_200_response.rs

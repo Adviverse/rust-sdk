@@ -129,7 +129,7 @@ pub async fn conversions_controller_track_post(configuration: &configuration::Co
     }
 }
 
-/// Claws back a held or settled per-checkout CPA conversion identified by `orderId`/`order_id`, optionally narrowed by `advertiserId`/`advertiser_id`. Emits a compensating conversion event carrying the original payout and publisher earnings so the ledger posts exact reversing entries, then marks the row refunded. A missing order id returns `error`, an unknown order `not_found`, and a repeat call `already_refunded`.  Auth: public, no credentials required.
+/// Claws back a held or settled per-checkout CPA conversion identified by `orderId`/`order_id`. Requires the advertiser API key (scope `write`) or session, and only touches that advertiser’s own orders (admins may pass `advertiserId`). Emits a compensating conversion event carrying the original payout and publisher earnings so the ledger posts exact reversing entries, then marks the row refunded. A missing order id returns `error`, an unknown order `not_found`, and a repeat call `already_refunded`.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: advertiser, admin.
 pub async fn conversions_controller_track_refund(configuration: &configuration::Configuration, refund_dto: models::RefundDto) -> Result<models::ConversionsControllerTrackRefund201Response, Error<ConversionsControllerTrackRefundError>> {
     let local_var_configuration = configuration;
 
@@ -141,6 +141,17 @@ pub async fn conversions_controller_track_refund(configuration: &configuration::
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
     local_var_req_builder = local_var_req_builder.json(&refund_dto);
 
     let local_var_req = local_var_req_builder.build()?;

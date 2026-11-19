@@ -17,10 +17,12 @@ pub struct IdentityControllerGet200ResponseIdentity {
     pub canonical_id: Option<uuid::Uuid>,
     #[serde(rename = "unified_id", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub unified_id: Option<Option<String>>,
+    /// Admins only
     #[serde(rename = "household_id", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub household_id: Option<Option<String>>,
     #[serde(rename = "consent_state", skip_serializing_if = "Option::is_none")]
     pub consent_state: Option<ConsentState>,
+    /// Admins only
     #[serde(rename = "attributes", skip_serializing_if = "Option::is_none")]
     pub attributes: Option<std::collections::HashMap<String, serde_json::Value>>,
     #[serde(rename = "first_seen", skip_serializing_if = "Option::is_none")]

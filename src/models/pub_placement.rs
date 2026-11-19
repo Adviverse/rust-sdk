@@ -11,7 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-/// PubPlacement : A `placements` row. All columns are returned, including `signing_secret`.
+/// PubPlacement : A `placements` row. The signing secret itself is never returned here (only from POST /v1/publisher/placements/{id}/signing-secret); `has_signing_secret` says whether one is set.
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PubPlacement {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
@@ -60,8 +60,9 @@ pub struct PubPlacement {
     pub house_backfill: Option<bool>,
     #[serde(rename = "floor_fallback", skip_serializing_if = "Option::is_none")]
     pub floor_fallback: Option<bool>,
-    #[serde(rename = "signing_secret", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
-    pub signing_secret: Option<Option<String>>,
+    /// True when a signing secret is set (signed-tag enforcement is on)
+    #[serde(rename = "has_signing_secret", skip_serializing_if = "Option::is_none")]
+    pub has_signing_secret: Option<bool>,
     #[serde(rename = "combo_id", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub combo_id: Option<Option<uuid::Uuid>>,
     #[serde(rename = "combo_label", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
@@ -77,7 +78,7 @@ pub struct PubPlacement {
 }
 
 impl PubPlacement {
-    /// A `placements` row. All columns are returned, including `signing_secret`.
+    /// A `placements` row. The signing secret itself is never returned here (only from POST /v1/publisher/placements/{id}/signing-secret); `has_signing_secret` says whether one is set.
     pub fn new() -> PubPlacement {
         PubPlacement {
             id: None,
@@ -101,7 +102,7 @@ impl PubPlacement {
             house_share: None,
             house_backfill: None,
             floor_fallback: None,
-            signing_secret: None,
+            has_signing_secret: None,
             combo_id: None,
             combo_label: None,
             last_active_at: None,

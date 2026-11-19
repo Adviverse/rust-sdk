@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 pub struct IdentityControllerResolve201Response {
     #[serde(rename = "canonicalId", skip_serializing_if = "Option::is_none")]
     pub canonical_id: Option<uuid::Uuid>,
+    /// Per-advertiser id for advertisers; the global email-derived id (or null) for admins
     #[serde(rename = "unifiedId", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub unified_id: Option<Option<String>>,
     #[serde(rename = "consentState", skip_serializing_if = "Option::is_none")]
