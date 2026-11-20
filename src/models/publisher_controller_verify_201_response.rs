@@ -19,14 +19,23 @@ pub struct PublisherControllerVerify201Response {
     pub token: String,
     #[serde(rename = "method", deserialize_with = "Option::deserialize")]
     pub method: Option<String>,
+    #[serde(rename = "error", deserialize_with = "Option::deserialize")]
+    pub error: Option<String>,
+    #[serde(rename = "message", deserialize_with = "Option::deserialize")]
+    pub message: Option<String>,
+    #[serde(rename = "check")]
+    pub check: Box<models::PublisherControllerVerify201ResponseCheck>,
 }
 
 impl PublisherControllerVerify201Response {
-    pub fn new(verified: bool, token: String, method: Option<String>) -> PublisherControllerVerify201Response {
+    pub fn new(verified: bool, token: String, method: Option<String>, error: Option<String>, message: Option<String>, check: models::PublisherControllerVerify201ResponseCheck) -> PublisherControllerVerify201Response {
         PublisherControllerVerify201Response {
             verified,
             token,
             method,
+            error,
+            message,
+            check: Box::new(check),
         }
     }
 }

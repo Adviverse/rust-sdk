@@ -53,7 +53,6 @@ src/models/admin_controller_config_200_response_inner.rs
 src/models/admin_controller_process_payout_201_response.rs
 src/models/admin_controller_quality_200_response_inner.rs
 src/models/admin_controller_rescan_201_response.rs
-src/models/admin_controller_set_status_201_response.rs
 src/models/admin_trust_dto.rs
 src/models/adv_ad_set_summary.rs
 src/models/adv_audience.rs
@@ -172,6 +171,7 @@ src/models/combo_controller_list_presets_200_response.rs
 src/models/combo_unit_dto.rs
 src/models/companion_dto.rs
 src/models/compliance_consent_config.rs
+src/models/compliance_controller_complete_201_response.rs
 src/models/compliance_controller_consent_201_response.rs
 src/models/compliance_controller_consent_log_200_response_inner.rs
 src/models/compliance_controller_sellers_200_response.rs
@@ -324,6 +324,7 @@ src/models/publisher_controller_domain_connect_201_response.rs
 src/models/publisher_controller_rotate_signing_secret_201_response.rs
 src/models/publisher_controller_tag_200_response.rs
 src/models/publisher_controller_verify_201_response.rs
+src/models/publisher_controller_verify_201_response_check.rs
 src/models/publisher_controller_verify_serving_domain_201_response.rs
 src/models/publisher_insights_controller_clearing_200_response.rs
 src/models/publisher_insights_controller_clearing_200_response_points_inner.rs

@@ -59,6 +59,12 @@ pub struct PubProperty {
     pub quality_score: Option<String>,
     #[serde(rename = "cross_fill", skip_serializing_if = "Option::is_none")]
     pub cross_fill: Option<bool>,
+    /// Ads before consent (resolved: property consent config, else account default)
+    #[serde(rename = "contextual_without_consent", skip_serializing_if = "Option::is_none")]
+    pub contextual_without_consent: Option<bool>,
+    /// Enhanced frequency capping (resolved like contextual_without_consent)
+    #[serde(rename = "enhanced_capping", skip_serializing_if = "Option::is_none")]
+    pub enhanced_capping: Option<bool>,
     #[serde(rename = "serving_domain", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub serving_domain: Option<Option<String>>,
     #[serde(rename = "serving_domain_verified", skip_serializing_if = "Option::is_none")]
@@ -111,6 +117,8 @@ impl PubProperty {
             status: None,
             quality_score: None,
             cross_fill: None,
+            contextual_without_consent: None,
+            enhanced_capping: None,
             serving_domain: None,
             serving_domain_verified: None,
             serving_domain_checked_at: None,

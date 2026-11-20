@@ -42,6 +42,12 @@ pub struct ComplianceConsentConfig {
     pub tcf_purpose: Option<i32>,
     #[serde(rename = "tcfVendorId", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub tcf_vendor_id: Option<Option<i32>>,
+    /// Ads always load: visitors who have not answered (or rejected) the CMP get contextual ads with no identifier; personalized still waits for consent. Same as the page flag window.ADVIVERSE_MIN_AC = 0.
+    #[serde(rename = "contextualWithoutConsent", skip_serializing_if = "Option::is_none")]
+    pub contextual_without_consent: Option<bool>,
+    /// Enhanced frequency capping: outside the EEA/UK, for visitors with no opt-out signal (GPC, US-privacy opt-out), contextual frequency caps also use browser signals and an SDK canvas hash (daily-rotating, per-site, never stored on the device). Off: caps use IP + user agent only and unusual contextual traffic is not served. Declare it in your privacy policy if you turn it on.
+    #[serde(rename = "enhancedCapping", skip_serializing_if = "Option::is_none")]
+    pub enhanced_capping: Option<bool>,
 }
 
 impl ComplianceConsentConfig {
@@ -61,6 +67,8 @@ impl ComplianceConsentConfig {
             consent_grant_value: None,
             tcf_purpose: None,
             tcf_vendor_id: None,
+            contextual_without_consent: None,
+            enhanced_capping: None,
         }
     }
 }

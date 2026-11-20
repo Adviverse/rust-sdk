@@ -129,7 +129,7 @@ pub async fn compliance_controller_ads_txt(configuration: &configuration::Config
 }
 
 /// Marks a DSAR completed. For delete requests it also deletes consent-log rows matching the subject hash. Returns `{ ok: false }` for an unknown id.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn compliance_controller_complete(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<ComplianceControllerCompleteError>> {
+pub async fn compliance_controller_complete(configuration: &configuration::Configuration, id: &str) -> Result<models::ComplianceControllerComplete201Response, Error<ComplianceControllerCompleteError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;

@@ -275,7 +275,7 @@ pub async fn blog_controller_page_html(configuration: &configuration::Configurat
 }
 
 /// Deletes the post and clears the public cache. Returns `{ ok: true }` even for an unknown id.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn blog_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<BlogControllerRemoveError>> {
+pub async fn blog_controller_remove(configuration: &configuration::Configuration, id: &str) -> Result<models::ComplianceControllerComplete201Response, Error<BlogControllerRemoveError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;

@@ -169,7 +169,7 @@ pub async fn admin_controller_accounts(configuration: &configuration::Configurat
 }
 
 /// Adds a `kind` (`ip`, `domain`, `asn`, `device`, `user_agent`, `country`, `subnet`) / `value` pair with an optional `reason`. Duplicates of an existing kind/value are ignored. The addition is audit-logged.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn admin_controller_add_block(configuration: &configuration::Configuration, add_block_dto: models::AddBlockDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerAddBlockError>> {
+pub async fn admin_controller_add_block(configuration: &configuration::Configuration, add_block_dto: models::AddBlockDto) -> Result<models::ComplianceControllerComplete201Response, Error<AdminControllerAddBlockError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -326,7 +326,7 @@ pub async fn admin_controller_config(configuration: &configuration::Configuratio
 }
 
 /// Marks a manual deposit received and credits the advertiser ledger. `ref` is the bank/provider reference (defaults to `manual:<id>`). Idempotent: `ok` is true only when a new credit was posted. A deposit tied to an agency invoice also marks that invoice paid.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn admin_controller_confirm_deposit(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerConfirmDepositError>> {
+pub async fn admin_controller_confirm_deposit(configuration: &configuration::Configuration, id: &str) -> Result<models::ComplianceControllerComplete201Response, Error<AdminControllerConfirmDepositError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -365,7 +365,7 @@ pub async fn admin_controller_confirm_deposit(configuration: &configuration::Con
 }
 
 /// For manual (wire) payouts left in `processing`: after ops sends the bank transfer, `paid: true` (default) settles it and releases the held funds, and `paid: false` marks it failed and returns them. Returns 404 for an unknown payout and 400 if it is not awaiting confirmation.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn admin_controller_confirm_payout(configuration: &configuration::Configuration, id: &str) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerConfirmPayoutError>> {
+pub async fn admin_controller_confirm_payout(configuration: &configuration::Configuration, id: &str) -> Result<models::ComplianceControllerComplete201Response, Error<AdminControllerConfirmPayoutError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -404,7 +404,7 @@ pub async fn admin_controller_confirm_payout(configuration: &configuration::Conf
 }
 
 /// Applies `decision` (`approved` or `rejected`) with optional `notes` to a queue item. This updates the target: the creative's moderation status, the campaign or sponsored-product campaign's status (`active` or `rejected`), or the property's status. The decision is audit-logged and the serving index is republished, so approved items can serve within seconds. 404 for an unknown item.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn admin_controller_decide(configuration: &configuration::Configuration, id: &str, moderation_decision_dto: models::ModerationDecisionDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerDecideError>> {
+pub async fn admin_controller_decide(configuration: &configuration::Configuration, id: &str, moderation_decision_dto: models::ModerationDecisionDto) -> Result<models::ComplianceControllerComplete201Response, Error<AdminControllerDecideError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -679,7 +679,7 @@ pub async fn admin_controller_rescan(configuration: &configuration::Configuratio
 }
 
 /// Creates or replaces the config entry `key` (1-200 chars) with `value` (any JSON). The change is recorded with the admin as updater and audit-logged.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn admin_controller_set_config(configuration: &configuration::Configuration, set_config_dto: models::SetConfigDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerSetConfigError>> {
+pub async fn admin_controller_set_config(configuration: &configuration::Configuration, set_config_dto: models::SetConfigDto) -> Result<models::ComplianceControllerComplete201Response, Error<AdminControllerSetConfigError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -719,7 +719,7 @@ pub async fn admin_controller_set_config(configuration: &configuration::Configur
 }
 
 /// Sets an account's `status` to `active`, `pending`, `suspended`, `banned` or `closed`. The previous and new status are written to the audit log. 404 if the account does not exist.  Auth: session bearer token, or API key (x-api-key) with scope `admin` (or `*`). Roles: admin.
-pub async fn admin_controller_set_status(configuration: &configuration::Configuration, id: &str, set_account_status_dto: models::SetAccountStatusDto) -> Result<models::AdminControllerSetStatus201Response, Error<AdminControllerSetStatusError>> {
+pub async fn admin_controller_set_status(configuration: &configuration::Configuration, id: &str, set_account_status_dto: models::SetAccountStatusDto) -> Result<models::ComplianceControllerComplete201Response, Error<AdminControllerSetStatusError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;

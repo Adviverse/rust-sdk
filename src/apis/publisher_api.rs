@@ -64,6 +64,13 @@ pub enum PublisherControllerGetAppError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`publisher_controller_get_property`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PublisherControllerGetPropertyError {
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`publisher_controller_list_apps`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -434,6 +441,45 @@ pub async fn publisher_controller_get_app(configuration: &configuration::Configu
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerGetAppError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
+        Err(Error::ResponseError(local_var_error))
+    }
+}
+
+/// Returns one property (same shape as an item of the list, including `trust_progress` and the resolved consent switches `contextual_without_consent` / `enhanced_capping`). 404 if not found, 403 if another publisher owns it.  Auth: session bearer token, or API key (x-api-key) with scope `read` (or `*`). Roles: publisher.
+pub async fn publisher_controller_get_property(configuration: &configuration::Configuration, id: &str) -> Result<models::PubProperty, Error<PublisherControllerGetPropertyError>> {
+    let local_var_configuration = configuration;
+
+    let local_var_client = &local_var_configuration.client;
+
+    let local_var_uri_str = format!("{}/v1/publisher/properties/{id}", local_var_configuration.base_path, id=crate::apis::urlencode(id));
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
+
+    if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
+        local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
+    }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
+
+    let local_var_req = local_var_req_builder.build()?;
+    let local_var_resp = local_var_client.execute(local_var_req).await?;
+
+    let local_var_status = local_var_resp.status();
+    let local_var_content = local_var_resp.text().await?;
+
+    if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
+        serde_json::from_str(&local_var_content).map_err(Error::from)
+    } else {
+        let local_var_entity: Option<PublisherControllerGetPropertyError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
@@ -831,7 +877,7 @@ pub async fn publisher_controller_update_app(configuration: &configuration::Conf
     }
 }
 
-/// Patches `name`, `floorCpm`, `revShare`, `auctionType`, `passbackUrl`, `status` (`active`/`paused`), house/yield flags, and the dynamic-floor settings `floorAuto` (let the yield optimizer manage the floor) and `floorSoft` (soft reserve). Returns the updated row and republishes the serving index. 404 if the placement is not found among your properties.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+/// Patches `name`, `floorCpm`, `revShare`, `auctionType`, `passbackUrl`, `status` (`active`/`paused`), house/yield flags, and the dynamic-floor settings `floorAuto` (let the yield optimizer manage the floor) and `floorSoft` (soft reserve), and `frequencyCap` (`{ impressions, windowSeconds }`; `{}` or `null` removes it). Returns the updated row and republishes the serving index. 404 if the placement is not found among your properties.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 pub async fn publisher_controller_update_placement(configuration: &configuration::Configuration, id: &str, update_placement_dto: models::UpdatePlacementDto) -> Result<models::PubPlacement, Error<PublisherControllerUpdatePlacementError>> {
     let local_var_configuration = configuration;
 
@@ -871,7 +917,7 @@ pub async fn publisher_controller_update_placement(configuration: &configuration
     }
 }
 
-/// Patches `name`, `domain`, `category`, `verificationMethod` and `crossFill` (opt in to filling this property with other-network demand). `category` is a site-niche id from GET /v1/site-niches and marks the niche as set by hand (`category_source: manual`, never overwritten by auto-detection); send 0 to hand it back to auto-detection. 400 for an unknown id. Changing `domain` also drops a trusted property back to `unverified` (unless an admin locked its trust). Changing `domain` resets `verification_status` to `unverified`, so the property must be re-verified. Returns the updated row (unchanged row if no fields were sent) and republishes the serving index. 404 if the property does not exist, 403 if another publisher owns it.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+/// Patches `name`, `domain`, `category`, `verificationMethod` and `crossFill` (opt in to filling this property with other-network demand). `contextualWithoutConsent` (Ads before consent: unanswered/rejected visitors get contextual ads, no identifier) and `enhancedCapping` (Enhanced frequency capping: outside the EEA/UK/CH, no GPC/opt-out, contextual caps add browser signals and an SDK canvas hash) are written to this property's consent config — the same settings as POST /v1/publisher/consent-config with this propertyId; the rest of that config is kept. `category` is a site-niche id from GET /v1/site-niches and marks the niche as set by hand (`category_source: manual`, never overwritten by auto-detection); send 0 to hand it back to auto-detection. 400 for an unknown id. Changing `domain` also drops a trusted property back to `unverified` (unless an admin locked its trust). Changing `domain` resets `verification_status` to `unverified`, so the property must be re-verified. Returns the updated row (unchanged row if no fields were sent) and republishes the serving index. 404 if the property does not exist, 403 if another publisher owns it.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 pub async fn publisher_controller_update_property(configuration: &configuration::Configuration, id: &str, update_property_dto: models::UpdatePropertyDto) -> Result<models::PubProperty, Error<PublisherControllerUpdatePropertyError>> {
     let local_var_configuration = configuration;
 
@@ -911,7 +957,7 @@ pub async fn publisher_controller_update_property(configuration: &configuration:
     }
 }
 
-/// Checks the property for its verification token using its method: `dns` looks up a TXT record at `adviverse-verify.<domain>`, `file` fetches `http://<domain>/.well-known/adviverse-verify.txt`, `meta` fetches the homepage and looks for the token. On success the property becomes `verified`, a `pending` property is auto-approved, and the serving index is republished so its placements start serving. A failed check is not an error: it returns `verified: false` with the token and method to show the publisher.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+/// Checks the property for its verification token using its method: `dns` looks up a TXT record at `adviverse-verify.<domain>`, `file` fetches `http://<domain>/.well-known/adviverse-verify.txt`, `meta` fetches the homepage and looks for the token. On success the property becomes `verified`, a `pending` property is auto-approved, and the serving index is republished so its placements start serving. File and meta checks add a cache-busting `?adviverse_verify=<ms>` query so a CDN-cached page cannot fail them. A failed check is not an error: it returns `verified: false` with `error` (dns_lookup_failed | token_not_found | http_error | fetch_failed), a human `message`, and `check` (what was fetched or queried and what it answered, including `age` and `cf-cache-status`).  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 pub async fn publisher_controller_verify(configuration: &configuration::Configuration, id: &str) -> Result<models::PublisherControllerVerify201Response, Error<PublisherControllerVerifyError>> {
     let local_var_configuration = configuration;
 

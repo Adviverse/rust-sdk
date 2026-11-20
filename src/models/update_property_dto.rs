@@ -23,6 +23,10 @@ pub struct UpdatePropertyDto {
     pub verification_method: Option<String>,
     #[serde(rename = "crossFill", skip_serializing_if = "Option::is_none")]
     pub cross_fill: Option<bool>,
+    #[serde(rename = "contextualWithoutConsent", skip_serializing_if = "Option::is_none")]
+    pub contextual_without_consent: Option<bool>,
+    #[serde(rename = "enhancedCapping", skip_serializing_if = "Option::is_none")]
+    pub enhanced_capping: Option<bool>,
 }
 
 impl UpdatePropertyDto {
@@ -33,6 +37,8 @@ impl UpdatePropertyDto {
             category: None,
             verification_method: None,
             cross_fill: None,
+            contextual_without_consent: None,
+            enhanced_capping: None,
         }
     }
 }

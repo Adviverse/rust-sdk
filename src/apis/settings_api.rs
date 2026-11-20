@@ -135,7 +135,7 @@ pub async fn settings_controller_bid_rec(configuration: &configuration::Configur
 }
 
 /// Stores brand-safety settings (`categories`, `keywords`, `domains`, `sensitivity`, free-form `options`) as JSON on the campaign, replacing any previous value. Only campaigns owned by the caller are updated; a foreign or unknown id is silently ignored.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: advertiser.
-pub async fn settings_controller_brand_safety(configuration: &configuration::Configuration, id: &str, brand_safety_dto: models::BrandSafetyDto) -> Result<models::AdminControllerSetStatus201Response, Error<SettingsControllerBrandSafetyError>> {
+pub async fn settings_controller_brand_safety(configuration: &configuration::Configuration, id: &str, brand_safety_dto: models::BrandSafetyDto) -> Result<models::ComplianceControllerComplete201Response, Error<SettingsControllerBrandSafetyError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;

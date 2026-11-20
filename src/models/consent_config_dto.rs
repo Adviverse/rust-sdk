@@ -39,6 +39,10 @@ pub struct ConsentConfigDto {
     pub tcf_purpose: Option<f64>,
     #[serde(rename = "tcfVendorId", skip_serializing_if = "Option::is_none")]
     pub tcf_vendor_id: Option<f64>,
+    #[serde(rename = "contextualWithoutConsent", skip_serializing_if = "Option::is_none")]
+    pub contextual_without_consent: Option<bool>,
+    #[serde(rename = "enhancedCapping", skip_serializing_if = "Option::is_none")]
+    pub enhanced_capping: Option<bool>,
 }
 
 impl ConsentConfigDto {
@@ -57,6 +61,8 @@ impl ConsentConfigDto {
             consent_grant_value: None,
             tcf_purpose: None,
             tcf_vendor_id: None,
+            contextual_without_consent: None,
+            enhanced_capping: None,
         }
     }
 }
