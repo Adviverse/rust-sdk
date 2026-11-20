@@ -25,4 +25,5 @@ jobs:
         uses: rust-lang/crates-io-auth-action@v1
       - if: vars.CRATES_PUBLISH == 'true'
         run: cargo publish --allow-dirty
-        env: { CARGO_REGISTRY_TOKEN: ${{ steps.crates.outputs.token }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates.outputs.token }}
