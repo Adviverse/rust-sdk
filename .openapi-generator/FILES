@@ -14,6 +14,7 @@ src/apis/compliance_api.rs
 src/apis/configuration.rs
 src/apis/conversions_api.rs
 src/apis/deals_api.rs
+src/apis/device_auth_api.rs
 src/apis/dooh_api.rs
 src/apis/edge_api.rs
 src/apis/exports_api.rs
@@ -212,6 +213,13 @@ src/models/deals_controller_lookup_advertiser_200_response.rs
 src/models/deals_controller_preview_claim_200_response.rs
 src/models/deals_controller_status_201_response.rs
 src/models/deposit_dto.rs
+src/models/device_approve_dto.rs
+src/models/device_auth_controller_approve_201_response.rs
+src/models/device_auth_controller_code_200_response.rs
+src/models/device_auth_controller_describe_200_response.rs
+src/models/device_auth_controller_token_200_response.rs
+src/models/device_code_dto.rs
+src/models/device_token_dto.rs
 src/models/dooh_controller_list_200_response_inner.rs
 src/models/dooh_controller_save_setup_201_response.rs
 src/models/dooh_setup_dto.rs
@@ -464,7 +472,7 @@ src/models/settings_controller_bid_rec_200_response.rs
 src/models/settings_controller_create_terminal_token_201_response.rs
 src/models/settings_controller_create_terminal_token_201_response_switch.rs
 src/models/settings_controller_list_terminal_tokens_200_response_inner.rs
-src/models/settings_controller_revoke_key_200_response.rs
+src/models/settings_controller_revoke_current_key_200_response.rs
 src/models/settings_controller_rotate_terminal_token_201_response.rs
 src/models/settings_controller_set_terminal_token_policy_200_response.rs
 src/models/settings_controller_update_network_200_response.rs
@@ -504,6 +512,7 @@ src/models/update_screen_dto.rs
 src/models/update_surface_dto.rs
 src/models/update_webhook_dto.rs
 src/models/verification_controller_categories_200_response_inner.rs
+src/models/verify_app_dto.rs
 src/models/webhook_delivery.rs
 src/models/webhook_delivery_result.rs
 src/models/webhook_endpoint.rs

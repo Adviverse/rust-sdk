@@ -29,6 +29,8 @@ pub struct CreateAppDto {
     pub category: Option<f64>,
     #[serde(rename = "ctvMeta", skip_serializing_if = "Option::is_none")]
     pub ctv_meta: Option<serde_json::Value>,
+    #[serde(rename = "developerPropertyId", skip_serializing_if = "Option::is_none")]
+    pub developer_property_id: Option<String>,
 }
 
 impl CreateAppDto {
@@ -42,6 +44,7 @@ impl CreateAppDto {
             app_store_id: None,
             category: None,
             ctv_meta: None,
+            developer_property_id: None,
         }
     }
 }

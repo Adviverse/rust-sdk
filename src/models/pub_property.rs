@@ -85,6 +85,9 @@ pub struct PubProperty {
     pub skadnetwork_ids: Option<Vec<String>>,
     #[serde(rename = "ctv_meta", skip_serializing_if = "Option::is_none")]
     pub ctv_meta: Option<std::collections::HashMap<String, serde_json::Value>>,
+    /// Apps: the website property whose /app-ads.txt verifies the app
+    #[serde(rename = "developer_property_id", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub developer_property_id: Option<Option<uuid::Uuid>>,
     #[serde(rename = "created_at", skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
     #[serde(rename = "updated_at", skip_serializing_if = "Option::is_none")]
@@ -129,6 +132,7 @@ impl PubProperty {
             app_ads_txt: None,
             skadnetwork_ids: None,
             ctv_meta: None,
+            developer_property_id: None,
             created_at: None,
             updated_at: None,
             deleted_at: None,

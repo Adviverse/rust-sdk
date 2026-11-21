@@ -99,6 +99,13 @@ pub enum PublisherControllerPropertyAdsTxtError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`publisher_controller_remove_app`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PublisherControllerRemoveAppError {
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`publisher_controller_remove_property`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -162,6 +169,13 @@ pub enum PublisherControllerVerifyError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`publisher_controller_verify_app`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PublisherControllerVerifyAppError {
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`publisher_controller_verify_serving_domain`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -209,7 +223,7 @@ pub async fn publisher_controller_app_ads_txt(configuration: &configuration::Con
     }
 }
 
-/// Creates a `mobile_app` or `ctv` property from `kind`, `name`, `bundleId` and `platform` (ios, android, roku, firetv, appletv, androidtv, web), with optional `storeUrl`, `appStoreId`, `category` and `ctvMeta`. The bundle id is stored in both `bundle_id` and `domain`; the app enters the normal `pending` approval flow with file verification.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+/// Creates a `mobile_app` or `ctv` property from `kind`, `name`, `bundleId` and `platform` (ios, android, roku, firetv, appletv, androidtv, web), with optional `storeUrl`, `appStoreId`, `category` and `ctvMeta`. The bundle id is stored in both `bundle_id` and `domain`. Optional `developerPropertyId` links one of your website properties as the developer site. The app starts `pending` / `unverified`; prove it with POST /v1/publisher/apps/{id}/verify (IAB app-ads.txt on the verified developer site, optionally plus the store listing), which approves it. For QA before verification, request ads with the test tag `tk_test`, which always fills. 400 if `developerPropertyId` is not one of your website properties.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 pub async fn publisher_controller_create_app(configuration: &configuration::Configuration, create_app_dto: models::CreateAppDto) -> Result<models::PubProperty, Error<PublisherControllerCreateAppError>> {
     let local_var_configuration = configuration;
 
@@ -249,7 +263,7 @@ pub async fn publisher_controller_create_app(configuration: &configuration::Conf
     }
 }
 
-/// Creates an ad unit on one of your properties (`propertyId`, `name`, `format` required) with a generated `tag_key`. Optional fields cover size (`width`/`height` or `responsive`), `floorCpm`, `revShare` (defaults to the network rev-share), `auctionType` (default `first_price`), `passbackUrl`, `frequencyCap`, format `settings`, and yield fill (`houseOnly`, `houseShare` clamped to 0-1, `houseBackfill`, `floorFallback`). Popunders default to a 1-per-visitor-per-24h frequency cap unless `frequencyCap` is given (`{}` opts out). The serving index is republished. 404 if the property is missing, 403 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+/// Creates an ad unit on one of your properties (`name`, `format` and exactly one of `propertyId` / `appId` required; an app id from /v1/publisher/apps is a valid property id) with a generated `tag_key`. On a mobile_app or ctv property only app formats are accepted (banner, native, interstitial, rewarded, app_open, video, audio, carousel, pod, direct_link); web-only formats such as popunder, social_bar and in_page_push return 400. Optional fields cover size (`width`/`height` or `responsive`), `floorCpm`, `revShare` (defaults to the network rev-share), `auctionType` (default `first_price`), `passbackUrl`, `frequencyCap`, format `settings`, and yield fill (`houseOnly`, `houseShare` clamped to 0-1, `houseBackfill`, `floorFallback`). Popunders default to a 1-per-visitor-per-24h frequency cap unless `frequencyCap` is given (`{}` opts out). The serving index is republished. 404 if the property is missing, 403 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 pub async fn publisher_controller_create_placement(configuration: &configuration::Configuration, create_placement_dto: models::CreatePlacementDto) -> Result<models::PubPlacement, Error<PublisherControllerCreatePlacementError>> {
     let local_var_configuration = configuration;
 
@@ -641,6 +655,45 @@ pub async fn publisher_controller_property_ads_txt(configuration: &configuration
     }
 }
 
+/// Soft-deletes the app and all of its placements, then republishes the serving index so ads stop promptly (same as deleting a property). 404 if not found or not an app, 403 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_remove_app(configuration: &configuration::Configuration, id: &str) -> Result<models::AuthControllerResendVerification201Response, Error<PublisherControllerRemoveAppError>> {
+    let local_var_configuration = configuration;
+
+    let local_var_client = &local_var_configuration.client;
+
+    let local_var_uri_str = format!("{}/v1/publisher/apps/{id}", local_var_configuration.base_path, id=crate::apis::urlencode(id));
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::DELETE, local_var_uri_str.as_str());
+
+    if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
+        local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
+    }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
+
+    let local_var_req = local_var_req_builder.build()?;
+    let local_var_resp = local_var_client.execute(local_var_req).await?;
+
+    let local_var_status = local_var_resp.status();
+    let local_var_content = local_var_resp.text().await?;
+
+    if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
+        serde_json::from_str(&local_var_content).map_err(Error::from)
+    } else {
+        let local_var_entity: Option<PublisherControllerRemoveAppError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
+        Err(Error::ResponseError(local_var_error))
+    }
+}
+
 /// Soft-deletes the property and all of its placements, then republishes the serving index so ads stop promptly. 404 if not found, 403 if not yours.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 pub async fn publisher_controller_remove_property(configuration: &configuration::Configuration, id: &str) -> Result<models::AuthControllerResendVerification201Response, Error<PublisherControllerRemovePropertyError>> {
     let local_var_configuration = configuration;
@@ -837,7 +890,7 @@ pub async fn publisher_controller_tag(configuration: &configuration::Configurati
     }
 }
 
-/// Patches only the fields sent: `appAdsTxt` (authorized-seller entries `{domain, sellerId, relationship?, certId?}`, normalized and invalid ones dropped), `skadnetworkIds`, `ctvMeta`, `storeUrl`, `platform`. Republishes the serving index. 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+/// Patches only the fields sent: `appAdsTxt` (authorized-seller entries `{domain, sellerId, relationship?, certId?}`, normalized and invalid ones dropped), `skadnetworkIds`, `ctvMeta`, `storeUrl`, `platform`, `developerPropertyId` (one of your website properties; `null` unlinks; 400 otherwise). Republishes the serving index. 404/403 as for get.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
 pub async fn publisher_controller_update_app(configuration: &configuration::Configuration, id: &str, update_app_dto: models::UpdateAppDto) -> Result<models::PubProperty, Error<PublisherControllerUpdateAppError>> {
     let local_var_configuration = configuration;
 
@@ -991,6 +1044,46 @@ pub async fn publisher_controller_verify(configuration: &configuration::Configur
         serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
         let local_var_entity: Option<PublisherControllerVerifyError> = serde_json::from_str(&local_var_content).ok();
+        let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
+        Err(Error::ResponseError(local_var_error))
+    }
+}
+
+/// Body `{method?: \"developer_site\" | \"store_listing\"}` (default `developer_site`). `developer_site`: the app's `developerPropertyId` must be one of your website properties and already verified; its `https://<domain>/app-ads.txt` (cache-busted, http fallback) must contain `adviverse.com, <publisherAccountId>, DIRECT` (case/space-insensitive; see GET /v1/publisher/apps/{id}/app-ads.txt). `store_listing`: `storeUrl` must be on apps.apple.com or play.google.com, answer 200 and show the Play package id (`id=`) or the App Store id; then the developer_site check also runs. On success the app becomes `verified`, a `pending` app is approved and the serving index is republished. A failed check returns `verified: false` with `error` (no_developer_property | developer_property_unverified | app_ads_txt_missing_line | http_error | fetch_failed | store_listing_not_found), a `message` saying what to put where, and `check`. Same shape as property verify.  Auth: session bearer token, or API key (x-api-key) with scope `write` (or `*`). Roles: publisher.
+pub async fn publisher_controller_verify_app(configuration: &configuration::Configuration, id: &str, verify_app_dto: models::VerifyAppDto) -> Result<models::PublisherControllerVerify201Response, Error<PublisherControllerVerifyAppError>> {
+    let local_var_configuration = configuration;
+
+    let local_var_client = &local_var_configuration.client;
+
+    let local_var_uri_str = format!("{}/v1/publisher/apps/{id}/verify", local_var_configuration.base_path, id=crate::apis::urlencode(id));
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::POST, local_var_uri_str.as_str());
+
+    if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
+        local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
+    }
+    if let Some(ref local_var_apikey) = local_var_configuration.api_key {
+        let local_var_key = local_var_apikey.key.clone();
+        let local_var_value = match local_var_apikey.prefix {
+            Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+            None => local_var_key,
+        };
+        local_var_req_builder = local_var_req_builder.header("x-api-key", local_var_value);
+    };
+    if let Some(ref local_var_token) = local_var_configuration.bearer_access_token {
+        local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
+    };
+    local_var_req_builder = local_var_req_builder.json(&verify_app_dto);
+
+    let local_var_req = local_var_req_builder.build()?;
+    let local_var_resp = local_var_client.execute(local_var_req).await?;
+
+    let local_var_status = local_var_resp.status();
+    let local_var_content = local_var_resp.text().await?;
+
+    if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
+        serde_json::from_str(&local_var_content).map_err(Error::from)
+    } else {
+        let local_var_entity: Option<PublisherControllerVerifyAppError> = serde_json::from_str(&local_var_content).ok();
         let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }

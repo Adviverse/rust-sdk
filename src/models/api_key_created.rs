@@ -13,6 +13,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ApiKeyCreated {
+    /// The key id (for DELETE /v1/keys/{id}).
+    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<uuid::Uuid>,
     /// Full key, shown only once.
     #[serde(rename = "key")]
     pub key: String,
@@ -27,6 +30,7 @@ pub struct ApiKeyCreated {
 impl ApiKeyCreated {
     pub fn new(key: String, prefix: String, scopes: Vec<String>, expires_at: Option<String>) -> ApiKeyCreated {
         ApiKeyCreated {
+            id: None,
             key,
             prefix,
             scopes,

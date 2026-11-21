@@ -23,6 +23,8 @@ pub struct UpdateAppDto {
     pub store_url: Option<String>,
     #[serde(rename = "platform", skip_serializing_if = "Option::is_none")]
     pub platform: Option<Platform>,
+    #[serde(rename = "developerPropertyId", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub developer_property_id: Option<Option<String>>,
 }
 
 impl UpdateAppDto {
@@ -33,6 +35,7 @@ impl UpdateAppDto {
             ctv_meta: None,
             store_url: None,
             platform: None,
+            developer_property_id: None,
         }
     }
 }

@@ -13,8 +13,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CreatePlacementDto {
-    #[serde(rename = "propertyId")]
-    pub property_id: String,
+    #[serde(rename = "propertyId", skip_serializing_if = "Option::is_none")]
+    pub property_id: Option<String>,
+    #[serde(rename = "appId", skip_serializing_if = "Option::is_none")]
+    pub app_id: Option<String>,
     #[serde(rename = "name")]
     pub name: String,
     #[serde(rename = "format")]
@@ -48,9 +50,10 @@ pub struct CreatePlacementDto {
 }
 
 impl CreatePlacementDto {
-    pub fn new(property_id: String, name: String, format: String) -> CreatePlacementDto {
+    pub fn new(name: String, format: String) -> CreatePlacementDto {
         CreatePlacementDto {
-            property_id,
+            property_id: None,
+            app_id: None,
             name,
             format,
             width: None,

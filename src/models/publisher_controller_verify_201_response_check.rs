@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 pub struct PublisherControllerVerify201ResponseCheck {
     #[serde(rename = "method", deserialize_with = "Option::deserialize")]
     pub method: Option<String>,
-    /// URL fetched (file/meta) or DNS name queried (dns)
+    /// URL fetched (file/meta/app-ads.txt/store listing) or DNS name queried (dns)
     #[serde(rename = "target")]
     pub target: String,
     #[serde(rename = "status", skip_serializing_if = "Option::is_none")]

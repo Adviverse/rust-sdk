@@ -103,6 +103,7 @@ pub mod combo_api;
 pub mod compliance_api;
 pub mod conversions_api;
 pub mod deals_api;
+pub mod device_auth_api;
 pub mod dooh_api;
 pub mod edge_api;
 pub mod exports_api;
